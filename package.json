@@ -13,7 +13,7 @@
     "jszip": "^3.10.1",
     "pdfjs-dist": "^4.4.168",
     "sharp": "^0.33.4",
-    "hwp.js": "^0.8.1"
+    "@ohah/hwpjs": "^0.1.0-rc.3"
   },
   "devDependencies": {
     "electron": "^31.0.0",
@@ -23,13 +23,14 @@
     "appId": "com.geolab.img-extractor",
     "productName": "ImgExtractor",
     "files": ["src/**/*", "assets/**/*"],
+    "extraMetadata": {
+      "main": "src/main.js"
+    },
     "win": {
-      "target": "nsis",
-      "icon": "assets/icon.ico"
+      "target": "nsis"
     },
     "mac": {
-      "target": "dmg",
-      "icon": "assets/icon.icns"
+      "target": "dmg"
     },
     "nsis": {
       "oneClick": false,

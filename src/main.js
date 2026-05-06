@@ -114,7 +114,6 @@ async function extractFromPptx(filePath, outputDir, onProgress) {
   const data = fs.readFileSync(filePath);
   const zip = await JSZip.loadAsync(data);
 
-  // 슬라이드 순서 파악
   const slideRelsMap = {};
   const slideFiles = Object.keys(zip.files)
     .filter(f => f.match(/^ppt\/slides\/slide\d+\.xml$/))
@@ -124,7 +123,6 @@ async function extractFromPptx(filePath, outputDir, onProgress) {
       return na - nb;
     });
 
-  // 슬라이드별 rels 파싱
   for (const slideFile of slideFiles) {
     const slideNum = parseInt(slideFile.match(/slide(\d+)/)[1]);
     const relsPath = slideFile.replace('ppt/slides/', 'ppt/slides/_rels/') + '.rels';
@@ -146,18 +144,15 @@ async function extractFromPptx(filePath, outputDir, onProgress) {
     for (let imgIdx = 0; imgIdx < images.length; imgIdx++) {
       const imgPath = images[imgIdx];
       if (!zip.files[imgPath]) continue;
-
       const imgBuf = Buffer.from(await zip.files[imgPath].async('arraybuffer'));
       const pageStr = String(slideNum).padStart(3, '0');
       const imgStr = String(imgIdx + 1).padStart(2, '0');
       const outPath = path.join(outputDir, `${pageStr}-${imgStr}.png`);
-
       await sharp(imgBuf).png().toFile(outPath);
       count++;
       onProgress(count);
     }
   }
-
   return count;
 }
 
@@ -175,42 +170,36 @@ async function extractFromDocx(filePath, outputDir, onProgress) {
   for (let i = 0; i < mediaFiles.length; i++) {
     const mediaFile = mediaFiles[i];
     const ext = path.extname(mediaFile).toLowerCase();
-    const imageExts = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff', '.webp', '.emf', '.wmf'];
+    const imageExts = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff', '.webp'];
     if (!imageExts.includes(ext)) continue;
-
     const imgBuf = Buffer.from(await zip.files[mediaFile].async('arraybuffer'));
-    const imgStr = String(i + 1).padStart(3, '0');
+    const imgStr = String(count + 1).padStart(3, '0');
     const outPath = path.join(outputDir, `${imgStr}-01.png`);
-
     try {
       await sharp(imgBuf).png().toFile(outPath);
       count++;
       onProgress(count);
-    } catch (e) {
-      // EMF/WMF 등 sharp가 못 읽는 포맷 스킵
-    }
+    } catch (e) { /* 스킵 */ }
   }
-
   return count;
 }
 
 async function extractFromPdf(filePath, outputDir, onProgress) {
   const sharp = require('sharp');
-
-  // pdfjs-dist를 Node 환경에서 사용
   const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
-  const { createCanvas } = require('canvas');
 
   const data = new Uint8Array(fs.readFileSync(filePath));
-  const pdfDoc = await pdfjsLib.getDocument({ data, useSystemFonts: true }).promise;
-  const numPages = pdfDoc.numPages;
+  const pdfDoc = await pdfjsLib.getDocument({
+    data,
+    useSystemFonts: true,
+    disableFontFace: true,
+  }).promise;
 
+  const numPages = pdfDoc.numPages;
   let count = 0;
 
   for (let pageNum = 1; pageNum <= numPages; pageNum++) {
     const page = await pdfDoc.getPage(pageNum);
-
-    // 페이지 내 이미지 객체 추출
     const ops = await page.getOperatorList();
     const imgNames = new Set();
 
@@ -224,41 +213,21 @@ async function extractFromPdf(filePath, outputDir, onProgress) {
     let imgIdx = 0;
     for (const imgName of imgNames) {
       try {
-        const img = await page.objs.get(imgName);
+        const img = await new Promise((resolve) => page.objs.get(imgName, resolve));
         if (!img || !img.data) continue;
-
         const { width, height, data: rawData, kind } = img;
-        let rawBuf;
-
-        if (kind === 2) {
-          // RGB
-          rawBuf = Buffer.from(rawData);
-          const pageStr = String(pageNum).padStart(3, '0');
-          const imgStr = String(imgIdx + 1).padStart(2, '0');
-          const outPath = path.join(outputDir, `${pageStr}-${imgStr}.png`);
-          await sharp(rawBuf, { raw: { width, height, channels: 3 } }).png().toFile(outPath);
-          count++;
-          imgIdx++;
-          onProgress(count);
-        } else if (kind === 3) {
-          // RGBA
-          rawBuf = Buffer.from(rawData);
-          const pageStr = String(pageNum).padStart(3, '0');
-          const imgStr = String(imgIdx + 1).padStart(2, '0');
-          const outPath = path.join(outputDir, `${pageStr}-${imgStr}.png`);
-          await sharp(rawBuf, { raw: { width, height, channels: 4 } }).png().toFile(outPath);
-          count++;
-          imgIdx++;
-          onProgress(count);
-        }
-      } catch (e) {
-        // 특정 이미지 처리 실패 시 스킵
-      }
+        const channels = kind === 3 ? 4 : 3;
+        const rawBuf = Buffer.from(rawData);
+        const pageStr = String(pageNum).padStart(3, '0');
+        const imgStr = String(imgIdx + 1).padStart(2, '0');
+        const outPath = path.join(outputDir, `${pageStr}-${imgStr}.png`);
+        await sharp(rawBuf, { raw: { width, height, channels } }).png().toFile(outPath);
+        count++;
+        imgIdx++;
+        onProgress(count);
+      } catch (e) { /* 스킵 */ }
     }
-
-    // 이미지 객체가 없는 페이지는 페이지 전체를 렌더링해서 저장 (옵션 - 현재는 이미지만 추출)
   }
-
   return count;
 }
 
@@ -271,11 +240,9 @@ async function extractFromHwp(filePath, outputDir, onProgress) {
     const JSZip = require('jszip');
     const data = fs.readFileSync(filePath);
     const zip = await JSZip.loadAsync(data);
-
     const mediaFiles = Object.keys(zip.files)
       .filter(f => (f.includes('BinData') || f.includes('Contents/image')) && !zip.files[f].dir)
       .sort();
-
     let count = 0;
     for (let i = 0; i < mediaFiles.length; i++) {
       const imgBuf = Buffer.from(await zip.files[mediaFiles[i]].async('arraybuffer'));
@@ -290,15 +257,21 @@ async function extractFromHwp(filePath, outputDir, onProgress) {
     return count;
 
   } else {
-    // HWP (바이너리) - hwp.js 사용
+    // HWP 바이너리 - @ohah/hwpjs 사용
     try {
-      const HWP = require('hwp.js');
-      const doc = await HWP.open(filePath);
-      const images = doc.images || [];
+      const { toJson } = require('@ohah/hwpjs');
+      const fileBuffer = fs.readFileSync(filePath);
+      const jsonStr = toJson(fileBuffer);
+      const doc = JSON.parse(jsonStr);
+
+      // 이미지 데이터 추출 (BinData 섹션)
+      const binData = doc?.bodyText?.binData || doc?.binData || [];
       let count = 0;
 
-      for (let i = 0; i < images.length; i++) {
-        const imgBuf = Buffer.from(images[i].data);
+      for (let i = 0; i < binData.length; i++) {
+        const item = binData[i];
+        if (!item || !item.data) continue;
+        const imgBuf = Buffer.from(item.data, 'base64');
         const imgStr = String(i + 1).padStart(3, '0');
         const outPath = path.join(outputDir, `${imgStr}-01.png`);
         try {
