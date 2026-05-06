@@ -16,7 +16,6 @@
     --border: rgba(255,255,255,0.06);
     --text: #dbdee1;
     --muted: #80848e;
-    --subtle: #949ba4;
     --brand: #5865f2;
     --brand-hover: #4752c4;
     --brand-dim: rgba(88,101,242,0.15);
@@ -40,13 +39,12 @@
     font-family: var(--font);
     font-size: 14px;
     user-select: none;
-    -webkit-app-region: no-drag;
     overflow: hidden;
   }
 
   .app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
-  /* ── Custom Titlebar ── */
+  /* ── Titlebar ── */
   .titlebar {
     display: flex;
     align-items: center;
@@ -54,34 +52,34 @@
     background: var(--sidebar);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
-    -webkit-app-region: drag;
+    -webkit-app-region: drag;  /* 타이틀바 전체 드래그 */
     padding-left: 12px;
   }
+  /* 타이틀바 안 텍스트/아이콘은 no-drag 제거 — 드래그 방해 안 하게 */
   .titlebar-icon {
     width: 16px; height: 16px;
     background: var(--brand);
     border-radius: 50%;
     flex-shrink: 0;
-    -webkit-app-region: no-drag;
     margin-right: 8px;
+    pointer-events: none;  /* 클릭 이벤트 무시, 드래그 영역 유지 */
   }
   .titlebar-name {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--white);
-    -webkit-app-region: no-drag;
+    font-size: 13px; font-weight: 700; color: var(--white);
+    pointer-events: none;
   }
   .titlebar-divider {
     width: 1px; height: 12px;
     background: rgba(255,255,255,0.15);
     margin: 0 8px;
+    pointer-events: none;
   }
   .titlebar-sub {
-    font-size: 12px;
-    color: var(--muted);
-    -webkit-app-region: no-drag;
+    font-size: 12px; color: var(--muted);
     flex: 1;
+    pointer-events: none;
   }
+  /* 윈도우 컨트롤 버튼만 no-drag */
   .titlebar-controls {
     display: flex;
     height: 100%;
@@ -89,17 +87,11 @@
     margin-left: auto;
   }
   .wc-btn {
-    width: 46px;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: none;
-    border: none;
-    color: var(--muted);
-    cursor: pointer;
+    width: 46px; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    background: none; border: none;
+    color: var(--muted); cursor: pointer;
     transition: background 0.1s, color 0.1s;
-    font-size: 11px;
   }
   .wc-btn:hover { background: rgba(255,255,255,0.1); color: var(--white); }
   .wc-btn.close:hover { background: #c42b1c; color: var(--white); }
@@ -107,25 +99,17 @@
 
   /* ── Main ── */
   .main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    padding: 16px;
-    gap: 12px;
-    overflow: hidden;
-    min-height: 0;
+    flex: 1; display: flex; flex-direction: column;
+    padding: 16px; gap: 12px; overflow: hidden; min-height: 0;
+    -webkit-app-region: no-drag;
   }
 
   /* ── Drop Zone ── */
   .drop-zone {
     border: 2px dashed var(--brand-border);
     border-radius: var(--radius-lg);
-    padding: 28px 20px;
-    text-align: center;
-    cursor: pointer;
-    background: var(--brand-dim);
-    transition: all 0.15s;
-    flex-shrink: 0;
+    padding: 28px 20px; text-align: center; cursor: pointer;
+    background: var(--brand-dim); transition: all 0.15s; flex-shrink: 0;
   }
   .drop-zone:hover, .drop-zone.drag-over { border-color: var(--brand); background: rgba(88,101,242,0.2); }
   .drop-zone .drop-icon { font-size: 28px; margin-bottom: 8px; }
@@ -157,7 +141,7 @@
   .file-icon {
     width: 34px; height: 34px; border-radius: var(--radius);
     display: flex; align-items: center; justify-content: center;
-    font-size: 10px; font-weight: 800; flex-shrink: 0; letter-spacing: 0.02em;
+    font-size: 10px; font-weight: 800; flex-shrink: 0;
   }
   .fi-pptx, .fi-ppt { background: rgba(209,83,46,0.2); color: #e07560; }
   .fi-docx, .fi-doc { background: rgba(68,114,196,0.2); color: #6090d0; }
@@ -183,12 +167,9 @@
   .file-remove:hover { color: var(--red); background: var(--red-dim); }
 
   .bottom {
-    background: var(--sidebar);
-    margin: 0 -16px -16px;
-    padding: 12px 16px;
+    background: var(--sidebar); margin: 0 -16px -16px; padding: 12px 16px;
     display: flex; flex-direction: column; gap: 10px;
-    border-top: 1px solid var(--border);
-    flex-shrink: 0;
+    border-top: 1px solid var(--border); flex-shrink: 0;
   }
 
   .progress-wrap { height: 4px; background: var(--input); border-radius: 2px; overflow: hidden; display: none; }
@@ -217,7 +198,6 @@
 <body>
 <div class="app">
 
-  <!-- Custom Titlebar -->
   <div class="titlebar">
     <div class="titlebar-icon"></div>
     <span class="titlebar-name">ImgExtractor</span>
@@ -233,8 +213,8 @@
         </svg>
       </button>
       <button class="wc-btn close" id="btnClose" title="닫기">
-        <svg viewBox="0 0 10 10" fill="currentColor">
-          <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" stroke-width="1.2"/>
+        <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.2">
+          <path d="M1 1l8 8M9 1l-8 8"/>
         </svg>
       </button>
     </div>
@@ -283,7 +263,6 @@
   const progressWrap = document.getElementById('progressWrap');
   const progressBar = document.getElementById('progressBar');
 
-  // 윈도우 컨트롤
   document.getElementById('btnMin').addEventListener('click', () => window.api.windowMinimize());
   document.getElementById('btnMax').addEventListener('click', () => window.api.windowMaximize());
   document.getElementById('btnClose').addEventListener('click', () => window.api.windowClose());
