@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ImgExtractor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+KR:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0d0d;
+    --surface: #161616;
+    --surface2: #1e1e1e;
+    --border: #2a2a2a;
+    --border-active: #444;
+    --text: #e8e8e8;
+    --text-dim: #666;
+    --text-muted: #444;
+    --accent: #e8ff47;
+    --accent-dim: rgba(232, 255, 71, 0.12);
+    --accent-hover: rgba(232, 255, 71, 0.08);
+    --red: #ff4747;
+    --red-dim: rgba(255, 71, 71, 0.1);
+    --green: #47ff9e;
+    --green-dim: rgba(71, 255, 158, 0.1);
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'Noto Sans KR', sans-serif;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    -webkit-app-region: no-drag;
+    user-select: none;
+  }
+
+  /* ── Layout ── */
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .titlebar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    -webkit-app-region: drag;
+    flex-shrink: 0;
+  }
+  .titlebar-icon {
+    width: 18px; height: 18px;
+    background: var(--accent);
+    clip-path: polygon(0 0, 100% 0, 100% 70%, 70% 100%, 0 100%);
+    flex-shrink: 0;
+    -webkit-app-region: no-drag;
+  }
+  .titlebar-title {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: 0.08em;
+    -webkit-app-region: no-drag;
+  }
+  .titlebar-sub {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    -webkit-app-region: no-drag;
+  }
+
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    gap: 14px;
+    overflow: hidden;
+  }
+
+  /* ── Drop Zone ── */
+  .drop-zone {
+    border: 1px dashed var(--border-active);
+    border-radius: 6px;
+    padding: 28px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    background: var(--surface);
+    position: relative;
+    flex-shrink: 0;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--accent);
+    background: var(--accent-hover);
+  }
+  .drop-zone.drag-over { background: var(--accent-dim); }
+  .drop-zone .drop-icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+    opacity: 0.6;
+  }
+  .drop-zone .drop-label {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+  .drop-zone .drop-sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+
+  /* ── File List ── */
+  .file-list-wrap {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+  }
+  .section-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .file-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .file-list::-webkit-scrollbar { width: 4px; }
+  .file-list::-webkit-scrollbar-track { background: transparent; }
+  .file-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    transition: border-color 0.1s;
+  }
+  .file-item.status-done { border-color: rgba(71, 255, 158, 0.25); background: var(--green-dim); }
+  .file-item.status-error { border-color: rgba(255, 71, 71, 0.25); background: var(--red-dim); }
+  .file-item.status-processing { border-color: rgba(232, 255, 71, 0.25); background: var(--accent-dim); }
+
+  .file-ext {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 500;
+    padding: 2px 5px;
+    border-radius: 3px;
+    background: var(--surface2);
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+    min-width: 36px;
+    text-align: center;
+  }
+  .file-ext.ext-pptx, .file-ext.ext-ppt { background: rgba(255, 100, 50, 0.15); color: #ff8060; }
+  .file-ext.ext-docx, .file-ext.ext-doc { background: rgba(50, 120, 255, 0.15); color: #6090ff; }
+  .file-ext.ext-pdf { background: rgba(255, 60, 60, 0.15); color: #ff6060; }
+  .file-ext.ext-hwp, .file-ext.ext-hwpx { background: rgba(80, 200, 120, 0.15); color: #60c880; }
+
+  .file-name {
+    flex: 1;
+    font-size: 12px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .file-status {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    flex-shrink: 0;
+    min-width: 70px;
+    text-align: right;
+  }
+  .file-item.status-done .file-status { color: var(--green); }
+  .file-item.status-error .file-status { color: var(--red); }
+  .file-item.status-processing .file-status { color: var(--accent); }
+
+  .file-remove {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-size: 14px;
+    line-height: 1;
+    transition: color 0.1s;
+    flex-shrink: 0;
+  }
+  .file-remove:hover { color: var(--red); }
+
+  /* ── Bottom Controls ── */
+  .controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .output-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+  .output-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    letter-spacing: 0.05em;
+  }
+  .output-path {
+    flex: 1;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .output-path.has-path { color: var(--text); }
+  .btn-small {
+    padding: 4px 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.1s;
+    flex-shrink: 0;
+  }
+  .btn-small:hover { border-color: var(--border-active); color: var(--text); }
+
+  .action-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn-extract {
+    flex: 1;
+    padding: 12px;
+    background: var(--accent);
+    border: none;
+    border-radius: 4px;
+    color: #0d0d0d;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-extract:hover { background: #f0ff6a; }
+  .btn-extract:disabled { background: var(--surface2); color: var(--text-muted); cursor: not-allowed; }
+
+  .btn-open-folder {
+    padding: 12px 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+  .btn-open-folder:hover:not(:disabled) { border-color: var(--border-active); color: var(--text); }
+  .btn-open-folder:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* ── Progress Bar ── */
+  .progress-bar-wrap {
+    height: 2px;
+    background: var(--border);
+    border-radius: 1px;
+    overflow: hidden;
+    display: none;
+  }
+  .progress-bar-wrap.visible { display: block; }
+  .progress-bar {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.3s ease;
+    border-radius: 1px;
+  }
+
+  /* ── Empty State ── */
+  .empty-state {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── Spinner ── */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border: 1.5px solid rgba(232, 255, 71, 0.3);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 4px;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="titlebar">
+    <div class="titlebar-icon"></div>
+    <span class="titlebar-title">IMGEXTRACTOR</span>
+    <span class="titlebar-sub">/ 문서 이미지 추출기</span>
+  </div>
+
+  <div class="main">
+    <!-- Drop Zone -->
+    <div class="drop-zone" id="dropZone">
+      <div class="drop-icon">📄</div>
+      <div class="drop-label">파일을 드래그하거나 클릭해서 추가</div>
+      <div class="drop-sub">PPTX · DOCX · PDF · HWP · HWPX</div>
+    </div>
+
+    <!-- File List -->
+    <div class="file-list-wrap">
+      <div class="section-label">파일 목록</div>
+      <div class="file-list" id="fileList">
+        <div class="empty-state" id="emptyState">추가된 파일이 없습니다</div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <div class="progress-bar-wrap" id="progressBarWrap">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+
+      <div class="output-row">
+        <span class="output-label">OUTPUT</span>
+        <span class="output-path" id="outputPath">출력 폴더를 선택하세요</span>
+        <button class="btn-small" id="btnSelectFolder">폴더 선택</button>
+      </div>
+
+      <div class="action-row">
+        <button class="btn-extract" id="btnExtract" disabled>추출 시작</button>
+        <button class="btn-open-folder" id="btnOpenFolder" disabled title="출력 폴더 열기">📂</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const state = {
+    files: [],      // { path, name, ext, status: 'idle'|'processing'|'done'|'error', imageCount: 0, error: '' }
+    outputDir: null,
+    running: false,
+    lastOutputDir: null,
+  };
+
+  // ── Elements ──
+  const dropZone = document.getElementById('dropZone');
+  const fileList = document.getElementById('fileList');
+  const emptyState = document.getElementById('emptyState');
+  const outputPath = document.getElementById('outputPath');
+  const btnSelectFolder = document.getElementById('btnSelectFolder');
+  const btnExtract = document.getElementById('btnExtract');
+  const btnOpenFolder = document.getElementById('btnOpenFolder');
+  const progressBarWrap = document.getElementById('progressBarWrap');
+  const progressBar = document.getElementById('progressBar');
+
+  // ── Drag & Drop ──
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    const paths = Array.from(e.dataTransfer.files).map(f => f.path);
+    addFiles(paths);
+  });
+  dropZone.addEventListener('click', async () => {
+    const paths = await window.api.openFile();
+    if (paths.length) addFiles(paths);
+  });
+
+  function addFiles(paths) {
+    const allowed = ['pptx', 'ppt', 'docx', 'doc', 'pdf', 'hwp', 'hwpx'];
+    for (const p of paths) {
+      const name = p.split(/[\\/]/).pop();
+      const ext = name.split('.').pop().toLowerCase();
+      if (!allowed.includes(ext)) continue;
+      if (state.files.find(f => f.path === p)) continue;
+      state.files.push({ path: p, name, ext, status: 'idle', imageCount: 0, error: '' });
+    }
+    renderFileList();
+    updateExtractBtn();
+  }
+
+  function removeFile(idx) {
+    state.files.splice(idx, 1);
+    renderFileList();
+    updateExtractBtn();
+  }
+
+  // ── Render ──
+  function renderFileList() {
+    if (state.files.length === 0) {
+      fileList.innerHTML = '<div class="empty-state" id="emptyState">추가된 파일이 없습니다</div>';
+      return;
+    }
+    fileList.innerHTML = state.files.map((f, i) => `
+      <div class="file-item status-${f.status}" data-idx="${i}">
+        <span class="file-ext ext-${f.ext}">${f.ext}</span>
+        <span class="file-name" title="${f.path}">${f.name}</span>
+        <span class="file-status">${statusLabel(f)}</span>
+        ${!state.running ? `<button class="file-remove" data-idx="${i}">×</button>` : ''}
+      </div>
+    `).join('');
+
+    fileList.querySelectorAll('.file-remove').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        removeFile(parseInt(btn.dataset.idx));
+      });
+    });
+  }
+
+  function statusLabel(f) {
+    if (f.status === 'idle') return '대기 중';
+    if (f.status === 'processing') return `<span class="spinner"></span>${f.imageCount}장`;
+    if (f.status === 'done') return `✓ ${f.imageCount}장`;
+    if (f.status === 'error') return '✗ 오류';
+    return '';
+  }
+
+  function updateExtractBtn() {
+    btnExtract.disabled = state.running || state.files.length === 0 || !state.outputDir;
+  }
+
+  // ── Output Folder ──
+  btnSelectFolder.addEventListener('click', async () => {
+    const folder = await window.api.openFolder();
+    if (folder) {
+      state.outputDir = folder;
+      outputPath.textContent = folder;
+      outputPath.classList.add('has-path');
+      btnOpenFolder.disabled = false;
+      updateExtractBtn();
+    }
+  });
+
+  btnOpenFolder.addEventListener('click', () => {
+    const target = state.lastOutputDir || state.outputDir;
+    if (target) window.api.openFolderInExplorer(target);
+  });
+
+  // ── Extract ──
+  btnExtract.addEventListener('click', async () => {
+    if (state.running || !state.outputDir || state.files.length === 0) return;
+
+    state.running = true;
+    state.files.forEach(f => { f.status = 'idle'; f.imageCount = 0; f.error = ''; });
+    renderFileList();
+    btnExtract.disabled = true;
+    btnExtract.textContent = '추출 중...';
+    progressBarWrap.classList.add('visible');
+    progressBar.style.width = '0%';
+
+    window.api.removeProgressListener();
+    window.api.onProgress(({ fileIndex, fileTotal, status, imageCount, error }) => {
+      const f = state.files[fileIndex];
+      if (!f) return;
+      f.status = status;
+      f.imageCount = imageCount || 0;
+      if (error) f.error = error;
+
+      const pct = ((fileIndex + (status === 'done' || status === 'error' ? 1 : 0.5)) / fileTotal) * 100;
+      progressBar.style.width = pct + '%';
+      renderFileList();
+    });
+
+    const filePaths = state.files.map(f => f.path);
+    const results = await window.api.startExtract({ filePaths, outputDir: state.outputDir });
+
+    state.running = false;
+    progressBar.style.width = '100%';
+    btnExtract.textContent = '추출 시작';
+    state.lastOutputDir = state.outputDir;
+    updateExtractBtn();
+    renderFileList();
+  });
+</script>
+</body>
+</html>
