@@ -10,16 +10,18 @@ function createWindow() {
     height: 560,
     minWidth: 600,
     minHeight: 480,
+    frame: false,
+    titleBarStyle: 'hidden',
+    backgroundColor: '#2b2d31',
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
     },
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
-    backgroundColor: '#0f0f0f',
-    show: false,
   });
 
+  mainWindow.setMenuBarVisibility(false);
   mainWindow.loadFile(path.join(__dirname, 'renderer/index.html'));
   mainWindow.once('ready-to-show', () => mainWindow.show());
 }
@@ -27,6 +29,15 @@ function createWindow() {
 app.whenReady().then(createWindow);
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
+
+// ── Window Controls ───────────────────────────────────────────────────────────
+ipcMain.handle('window:minimize', () => mainWindow.minimize());
+ipcMain.handle('window:maximize', () => {
+  if (mainWindow.isMaximized()) mainWindow.unmaximize();
+  else mainWindow.maximize();
+});
+ipcMain.handle('window:close', () => mainWindow.close());
+ipcMain.handle('window:isMaximized', () => mainWindow.isMaximized());
 
 // ── IPC Handlers ──────────────────────────────────────────────────────────────
 
@@ -179,7 +190,7 @@ async function extractFromDocx(filePath, outputDir, onProgress) {
       await sharp(imgBuf).png().toFile(outPath);
       count++;
       onProgress(count);
-    } catch (e) { /* 스킵 */ }
+    } catch (e) {}
   }
   return count;
 }
@@ -187,14 +198,8 @@ async function extractFromDocx(filePath, outputDir, onProgress) {
 async function extractFromPdf(filePath, outputDir, onProgress) {
   const sharp = require('sharp');
   const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
-
   const data = new Uint8Array(fs.readFileSync(filePath));
-  const pdfDoc = await pdfjsLib.getDocument({
-    data,
-    useSystemFonts: true,
-    disableFontFace: true,
-  }).promise;
-
+  const pdfDoc = await pdfjsLib.getDocument({ data, useSystemFonts: true, disableFontFace: true }).promise;
   const numPages = pdfDoc.numPages;
   let count = 0;
 
@@ -202,14 +207,11 @@ async function extractFromPdf(filePath, outputDir, onProgress) {
     const page = await pdfDoc.getPage(pageNum);
     const ops = await page.getOperatorList();
     const imgNames = new Set();
-
     for (let i = 0; i < ops.fnArray.length; i++) {
-      if (ops.fnArray[i] === pdfjsLib.OPS.paintImageXObject ||
-          ops.fnArray[i] === pdfjsLib.OPS.paintImageMaskXObject) {
+      if (ops.fnArray[i] === pdfjsLib.OPS.paintImageXObject || ops.fnArray[i] === pdfjsLib.OPS.paintImageMaskXObject) {
         imgNames.add(ops.argsArray[i][0]);
       }
     }
-
     let imgIdx = 0;
     for (const imgName of imgNames) {
       try {
@@ -222,10 +224,8 @@ async function extractFromPdf(filePath, outputDir, onProgress) {
         const imgStr = String(imgIdx + 1).padStart(2, '0');
         const outPath = path.join(outputDir, `${pageStr}-${imgStr}.png`);
         await sharp(rawBuf, { raw: { width, height, channels } }).png().toFile(outPath);
-        count++;
-        imgIdx++;
-        onProgress(count);
-      } catch (e) { /* 스킵 */ }
+        count++; imgIdx++; onProgress(count);
+      } catch (e) {}
     }
   }
   return count;
@@ -236,7 +236,6 @@ async function extractFromHwp(filePath, outputDir, onProgress) {
   const ext = path.extname(filePath).toLowerCase();
 
   if (ext === '.hwpx') {
-    // HWPX는 ZIP 구조
     const JSZip = require('jszip');
     const data = fs.readFileSync(filePath);
     const zip = await JSZip.loadAsync(data);
@@ -248,37 +247,24 @@ async function extractFromHwp(filePath, outputDir, onProgress) {
       const imgBuf = Buffer.from(await zip.files[mediaFiles[i]].async('arraybuffer'));
       const imgStr = String(i + 1).padStart(3, '0');
       const outPath = path.join(outputDir, `${imgStr}-01.png`);
-      try {
-        await sharp(imgBuf).png().toFile(outPath);
-        count++;
-        onProgress(count);
-      } catch (e) { /* 스킵 */ }
+      try { await sharp(imgBuf).png().toFile(outPath); count++; onProgress(count); } catch (e) {}
     }
     return count;
-
   } else {
-    // HWP 바이너리 - @ohah/hwpjs 사용
     try {
       const { toJson } = require('@ohah/hwpjs');
       const fileBuffer = fs.readFileSync(filePath);
       const jsonStr = toJson(fileBuffer);
       const doc = JSON.parse(jsonStr);
-
-      // 이미지 데이터 추출 (BinData 섹션)
       const binData = doc?.bodyText?.binData || doc?.binData || [];
       let count = 0;
-
       for (let i = 0; i < binData.length; i++) {
         const item = binData[i];
         if (!item || !item.data) continue;
         const imgBuf = Buffer.from(item.data, 'base64');
         const imgStr = String(i + 1).padStart(3, '0');
         const outPath = path.join(outputDir, `${imgStr}-01.png`);
-        try {
-          await sharp(imgBuf).png().toFile(outPath);
-          count++;
-          onProgress(count);
-        } catch (e) { /* 스킵 */ }
+        try { await sharp(imgBuf).png().toFile(outPath); count++; onProgress(count); } catch (e) {}
       }
       return count;
     } catch (e) {

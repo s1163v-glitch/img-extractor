@@ -41,49 +41,69 @@
     font-size: 14px;
     user-select: none;
     -webkit-app-region: no-drag;
-  }
-
-  .app {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
     overflow: hidden;
   }
 
-  /* ── Titlebar ── */
+  .app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+  /* ── Custom Titlebar ── */
   .titlebar {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 0 16px;
-    height: 48px;
+    height: 32px;
     background: var(--sidebar);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
     -webkit-app-region: drag;
+    padding-left: 12px;
   }
   .titlebar-icon {
-    width: 20px; height: 20px;
+    width: 16px; height: 16px;
     background: var(--brand);
     border-radius: 50%;
     flex-shrink: 0;
     -webkit-app-region: no-drag;
+    margin-right: 8px;
   }
   .titlebar-name {
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 700;
     color: var(--white);
     -webkit-app-region: no-drag;
   }
   .titlebar-divider {
-    width: 1px; height: 16px;
+    width: 1px; height: 12px;
     background: rgba(255,255,255,0.15);
+    margin: 0 8px;
   }
   .titlebar-sub {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--muted);
     -webkit-app-region: no-drag;
+    flex: 1;
   }
+  .titlebar-controls {
+    display: flex;
+    height: 100%;
+    -webkit-app-region: no-drag;
+    margin-left: auto;
+  }
+  .wc-btn {
+    width: 46px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background 0.1s, color 0.1s;
+    font-size: 11px;
+  }
+  .wc-btn:hover { background: rgba(255,255,255,0.1); color: var(--white); }
+  .wc-btn.close:hover { background: #c42b1c; color: var(--white); }
+  .wc-btn svg { width: 10px; height: 10px; }
 
   /* ── Main ── */
   .main {
@@ -107,70 +127,27 @@
     transition: all 0.15s;
     flex-shrink: 0;
   }
-  .drop-zone:hover, .drop-zone.drag-over {
-    border-color: var(--brand);
-    background: rgba(88,101,242,0.2);
-  }
-  .drop-zone .drop-icon { font-size: 30px; margin-bottom: 8px; }
-  .drop-zone .drop-label {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--white);
-    margin-bottom: 4px;
-  }
-  .drop-zone .drop-sub {
-    font-size: 12px;
-    color: var(--muted);
-    letter-spacing: 0.04em;
-  }
+  .drop-zone:hover, .drop-zone.drag-over { border-color: var(--brand); background: rgba(88,101,242,0.2); }
+  .drop-zone .drop-icon { font-size: 28px; margin-bottom: 8px; }
+  .drop-zone .drop-label { font-size: 14px; font-weight: 600; color: var(--white); margin-bottom: 4px; }
+  .drop-zone .drop-sub { font-size: 12px; color: var(--muted); letter-spacing: 0.04em; }
 
-  /* ── Section Label ── */
   .section-label {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    flex-shrink: 0;
+    font-size: 11px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.08em; flex-shrink: 0;
   }
 
-  /* ── File List ── */
-  .file-list-wrap {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    overflow: hidden;
-  }
-  .file-list {
-    flex: 1;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-height: 0;
-  }
+  .file-list-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
+  .file-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; min-height: 0; }
   .file-list::-webkit-scrollbar { width: 4px; }
   .file-list::-webkit-scrollbar-track { background: transparent; }
   .file-list::-webkit-scrollbar-thumb { background: var(--elevated); border-radius: 2px; }
 
-  .empty-state {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 80px;
-    color: var(--muted);
-    font-size: 13px;
-  }
+  .empty-state { display: flex; align-items: center; justify-content: center; height: 80px; color: var(--muted); font-size: 13px; }
 
   .file-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 10px;
-    border-radius: var(--radius);
-    transition: background 0.1s;
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: var(--radius); transition: background 0.1s;
   }
   .file-item:hover { background: var(--elevated); }
   .file-item.status-processing { background: var(--yellow-dim); }
@@ -178,15 +155,9 @@
   .file-item.status-error { background: var(--red-dim); }
 
   .file-icon {
-    width: 34px; height: 34px;
-    border-radius: var(--radius);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    font-weight: 800;
-    flex-shrink: 0;
-    letter-spacing: 0.02em;
+    width: 34px; height: 34px; border-radius: var(--radius);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 800; flex-shrink: 0; letter-spacing: 0.02em;
   }
   .fi-pptx, .fi-ppt { background: rgba(209,83,46,0.2); color: #e07560; }
   .fi-docx, .fi-doc { background: rgba(68,114,196,0.2); color: #6090d0; }
@@ -194,168 +165,79 @@
   .fi-hwp, .fi-hwpx { background: rgba(35,165,89,0.2); color: #40b870; }
 
   .file-info { flex: 1; min-width: 0; }
-  .file-name {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .file-sub {
-    font-size: 11px;
-    color: var(--muted);
-    margin-top: 1px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+  .file-name { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-sub { font-size: 11px; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-  .file-badge {
-    font-size: 11px;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 10px;
-    flex-shrink: 0;
-  }
+  .file-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; flex-shrink: 0; }
   .badge-idle { background: var(--elevated); color: var(--muted); }
   .badge-processing { background: var(--yellow-dim); color: var(--yellow); }
   .badge-done { background: var(--green-dim); color: var(--green); }
   .badge-error { background: var(--red-dim); color: var(--red); }
 
   .file-remove {
-    background: none;
-    border: none;
-    color: var(--muted);
-    cursor: pointer;
-    padding: 4px 6px;
-    border-radius: var(--radius);
-    font-size: 16px;
-    line-height: 1;
-    opacity: 0;
-    transition: all 0.1s;
-    flex-shrink: 0;
+    background: none; border: none; color: var(--muted); cursor: pointer;
+    padding: 4px 6px; border-radius: var(--radius); font-size: 14px; line-height: 1;
+    opacity: 0; transition: all 0.1s; flex-shrink: 0;
   }
   .file-item:hover .file-remove { opacity: 1; }
   .file-remove:hover { color: var(--red); background: var(--red-dim); }
 
-  /* ── Bottom Panel ── */
   .bottom {
     background: var(--sidebar);
     margin: 0 -16px -16px;
     padding: 12px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    display: flex; flex-direction: column; gap: 10px;
     border-top: 1px solid var(--border);
     flex-shrink: 0;
   }
 
-  .progress-wrap {
-    height: 4px;
-    background: var(--input);
-    border-radius: 2px;
-    overflow: hidden;
-    display: none;
-  }
+  .progress-wrap { height: 4px; background: var(--input); border-radius: 2px; overflow: hidden; display: none; }
   .progress-wrap.visible { display: block; }
-  .progress-bar {
-    height: 100%;
-    background: var(--brand);
-    width: 0%;
-    transition: width 0.3s ease;
-    border-radius: 2px;
-  }
+  .progress-bar { height: 100%; background: var(--brand); width: 0%; transition: width 0.3s ease; border-radius: 2px; }
 
-  .output-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--input);
-    border-radius: var(--radius);
-    padding: 8px 12px;
-  }
-  .output-label {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    flex-shrink: 0;
-  }
-  .output-path {
-    flex: 1;
-    font-size: 12px;
-    color: var(--muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+  .output-row { display: flex; align-items: center; gap: 8px; background: var(--input); border-radius: var(--radius); padding: 8px 12px; }
+  .output-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; flex-shrink: 0; }
+  .output-path { flex: 1; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .output-path.has { color: var(--text); }
-  .btn-sm {
-    padding: 5px 12px;
-    background: var(--elevated);
-    border: none;
-    border-radius: var(--radius);
-    color: var(--text);
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.1s;
-    flex-shrink: 0;
-  }
+  .btn-sm { padding: 5px 12px; background: var(--elevated); border: none; border-radius: var(--radius); color: var(--text); font-size: 12px; font-weight: 500; cursor: pointer; transition: background 0.1s; flex-shrink: 0; }
   .btn-sm:hover { background: #4e5058; }
 
   .action-row { display: flex; gap: 8px; }
-
-  .btn-extract {
-    flex: 1;
-    padding: 10px;
-    background: var(--brand);
-    border: none;
-    border-radius: var(--radius);
-    color: var(--white);
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
+  .btn-extract { flex: 1; padding: 10px; background: var(--brand); border: none; border-radius: var(--radius); color: var(--white); font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
   .btn-extract:hover:not(:disabled) { background: var(--brand-hover); }
   .btn-extract:disabled { background: #3d4271; color: #666a9a; cursor: not-allowed; }
-
-  .btn-folder-open {
-    padding: 10px 14px;
-    background: var(--elevated);
-    border: none;
-    border-radius: var(--radius);
-    color: var(--muted);
-    font-size: 16px;
-    cursor: pointer;
-    transition: all 0.1s;
-  }
+  .btn-folder-open { padding: 10px 14px; background: var(--elevated); border: none; border-radius: var(--radius); color: var(--muted); font-size: 16px; cursor: pointer; transition: all 0.1s; }
   .btn-folder-open:hover:not(:disabled) { background: #4e5058; color: var(--text); }
   .btn-folder-open:disabled { opacity: 0.4; cursor: not-allowed; }
 
   @keyframes spin { to { transform: rotate(360deg); } }
-  .spinner {
-    display: inline-block;
-    width: 10px; height: 10px;
-    border: 1.5px solid rgba(240,178,50,0.3);
-    border-top-color: var(--yellow);
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-    vertical-align: middle;
-    margin-right: 4px;
-  }
+  .spinner { display: inline-block; width: 10px; height: 10px; border: 1.5px solid rgba(240,178,50,0.3); border-top-color: var(--yellow); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 4px; }
 </style>
 </head>
 <body>
 <div class="app">
+
+  <!-- Custom Titlebar -->
   <div class="titlebar">
     <div class="titlebar-icon"></div>
     <span class="titlebar-name">ImgExtractor</span>
     <div class="titlebar-divider"></div>
     <span class="titlebar-sub">문서 이미지 추출기</span>
+    <div class="titlebar-controls">
+      <button class="wc-btn" id="btnMin" title="최소화">
+        <svg viewBox="0 0 10 1" fill="currentColor"><rect width="10" height="1"/></svg>
+      </button>
+      <button class="wc-btn" id="btnMax" title="최대화">
+        <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1">
+          <rect x="0.5" y="0.5" width="9" height="9"/>
+        </svg>
+      </button>
+      <button class="wc-btn close" id="btnClose" title="닫기">
+        <svg viewBox="0 0 10 10" fill="currentColor">
+          <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" stroke-width="1.2"/>
+        </svg>
+      </button>
+    </div>
   </div>
 
   <div class="main">
@@ -390,12 +272,7 @@
 </div>
 
 <script>
-  const state = {
-    files: [],
-    outputDir: null,
-    running: false,
-    lastOutputDir: null,
-  };
+  const state = { files: [], outputDir: null, running: false, lastOutputDir: null };
 
   const dropZone = document.getElementById('dropZone');
   const fileList = document.getElementById('fileList');
@@ -405,6 +282,11 @@
   const btnOpenFolder = document.getElementById('btnOpenFolder');
   const progressWrap = document.getElementById('progressWrap');
   const progressBar = document.getElementById('progressBar');
+
+  // 윈도우 컨트롤
+  document.getElementById('btnMin').addEventListener('click', () => window.api.windowMinimize());
+  document.getElementById('btnMax').addEventListener('click', () => window.api.windowMaximize());
+  document.getElementById('btnClose').addEventListener('click', () => window.api.windowClose());
 
   dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
   dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
@@ -427,15 +309,10 @@
       if (state.files.find(f => f.path === p)) continue;
       state.files.push({ path: p, name, ext, status: 'idle', imageCount: 0, error: '' });
     }
-    render();
-    updateBtn();
+    render(); updateBtn();
   }
 
-  function removeFile(idx) {
-    state.files.splice(idx, 1);
-    render();
-    updateBtn();
-  }
+  function removeFile(idx) { state.files.splice(idx, 1); render(); updateBtn(); }
 
   function badgeHtml(f) {
     if (f.status === 'idle') return '<span class="file-badge badge-idle">대기</span>';
@@ -446,10 +323,7 @@
   }
 
   function render() {
-    if (!state.files.length) {
-      fileList.innerHTML = '<div class="empty-state">추가된 파일이 없습니다</div>';
-      return;
-    }
+    if (!state.files.length) { fileList.innerHTML = '<div class="empty-state">추가된 파일이 없습니다</div>'; return; }
     fileList.innerHTML = state.files.map((f, i) => `
       <div class="file-item status-${f.status}">
         <div class="file-icon fi-${f.ext}">${f.ext.toUpperCase()}</div>
@@ -461,15 +335,12 @@
         ${!state.running ? `<button class="file-remove" data-idx="${i}">✕</button>` : ''}
       </div>
     `).join('');
-
     fileList.querySelectorAll('.file-remove').forEach(btn => {
       btn.addEventListener('click', e => { e.stopPropagation(); removeFile(+btn.dataset.idx); });
     });
   }
 
-  function updateBtn() {
-    btnExtract.disabled = state.running || !state.files.length || !state.outputDir;
-  }
+  function updateBtn() { btnExtract.disabled = state.running || !state.files.length || !state.outputDir; }
 
   btnSelectFolder.addEventListener('click', async () => {
     const folder = await window.api.openFolder();
@@ -501,8 +372,7 @@
     window.api.onProgress(({ fileIndex, fileTotal, status, imageCount, error }) => {
       const f = state.files[fileIndex];
       if (!f) return;
-      f.status = status;
-      f.imageCount = imageCount || 0;
+      f.status = status; f.imageCount = imageCount || 0;
       if (error) f.error = error;
       const pct = ((fileIndex + (status === 'done' || status === 'error' ? 1 : 0.5)) / fileTotal) * 100;
       progressBar.style.width = pct + '%';
@@ -514,8 +384,7 @@
     progressBar.style.width = '100%';
     btnExtract.textContent = '추출 시작';
     state.lastOutputDir = state.outputDir;
-    updateBtn();
-    render();
+    updateBtn(); render();
   });
 </script>
 </body>
