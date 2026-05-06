@@ -6,8 +6,7 @@
   "scripts": {
     "start": "electron .",
     "build": "electron-builder",
-    "build:win": "electron-builder --win",
-    "build:mac": "electron-builder --mac"
+    "build:win": "electron-builder --win portable"
   },
   "dependencies": {
     "jszip": "^3.10.1",
@@ -22,19 +21,19 @@
   "build": {
     "appId": "com.geolab.img-extractor",
     "productName": "ImgExtractor",
-    "files": ["src/**/*", "assets/**/*"],
+    "files": [
+      "src/**/*"
+    ],
     "extraMetadata": {
       "main": "src/main.js"
     },
     "win": {
-      "target": "nsis"
-    },
-    "mac": {
-      "target": "dmg"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ]
     }
   }
 }
