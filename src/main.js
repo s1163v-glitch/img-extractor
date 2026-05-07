@@ -1,6 +1,6 @@
 const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
-const fs = require('fs');
+const fs   = require('fs');
 const crypto = require('crypto');
 
 let mainWindow;
@@ -35,17 +35,14 @@ ipcMain.handle('dialog:openFile', async () => {
   });
   return canceled ? [] : filePaths;
 });
-
 ipcMain.handle('dialog:openFolder', async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, { title: '출력 폴더 선택', properties: ['openDirectory', 'createDirectory'] });
   return canceled ? null : filePaths[0];
 });
-
 ipcMain.handle('dialog:openScanFolder', async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, { title: '검색할 폴더 선택', properties: ['openDirectory'] });
   return canceled ? null : filePaths[0];
 });
-
 ipcMain.handle('dialog:openImageFile', async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
     title: '이미지 파일 선택',
@@ -54,7 +51,6 @@ ipcMain.handle('dialog:openImageFile', async () => {
   });
   return canceled ? null : filePaths[0];
 });
-
 ipcMain.handle('shell:openFolder', async (_, p) => shell.openPath(p));
 ipcMain.handle('shell:openExternal', async (_, url) => shell.openExternal(url));
 ipcMain.handle('shell:openPath', async (_, p) => shell.openPath(p));
@@ -95,7 +91,6 @@ ipcMain.handle('resample:preview', async (_, { filePath }) => {
   const b64 = await sharp(buf).png().toBuffer();
   return { base64: b64.toString('base64'), width: meta.width, height: meta.height, size: buf.length };
 });
-
 ipcMain.handle('resample:save', async (_, { filePath, scale }) => {
   const sharp = require('sharp');
   const { canceled, filePath: savePath } = await dialog.showSaveDialog(mainWindow, {
@@ -104,25 +99,44 @@ ipcMain.handle('resample:save', async (_, { filePath, scale }) => {
   });
   if (canceled || !savePath) return null;
   const meta = await sharp(filePath).metadata();
-  await sharp(filePath)
-    .resize(Math.round(meta.width * scale), Math.round(meta.height * scale), { kernel: sharp.kernel.lanczos3 })
-    .png().toFile(savePath);
+  await sharp(filePath).resize(Math.round(meta.width*scale), Math.round(meta.height*scale), { kernel: sharp.kernel.lanczos3 }).png().toFile(savePath);
   return savePath;
 });
 
-// ── Tab 3: PC 유사 이미지 찾기 ──
+// ── Tab 3: PC 유사 이미지 찾기 (ONNX 임베딩) ──
+
+// 모델 준비 (UI에서 호출)
+ipcMain.handle('model:prepare', async (event) => {
+  const embedder = require('./embedder');
+  const userDataPath = app.getPath('userData');
+
+  try {
+    await embedder.prepare(userDataPath, ({ stage, pct }) => {
+      event.sender.send('model:progress', { stage, pct });
+    });
+    return { success: true };
+  } catch(err) {
+    return { success: false, error: err.message };
+  }
+});
+
 ipcMain.handle('phash:scan', async (event, { queryPath, scanDir }) => {
-  const sharp = require('sharp');
+  const sharp    = require('sharp');
+  const embedder = require('./embedder');
+  const crypto   = require('crypto');
   const imageExts = new Set(['.jpg','.jpeg','.png','.bmp','.gif','.webp','.tiff']);
 
-  // 쿼리 이미지 정보 수집
-  const queryBuf = fs.readFileSync(queryPath);
-  const queryMD5 = crypto.createHash('md5').update(queryBuf).digest('hex');
+  // 쿼리 이미지 정보
+  const queryBuf  = fs.readFileSync(queryPath);
+  const queryMD5  = crypto.createHash('md5').update(queryBuf).digest('hex');
   const queryMeta = await sharp(queryPath).metadata();
-  const queryAR = queryMeta.width / queryMeta.height;
-  const queryAHash = await computeAHash(queryPath);
+  const queryAR   = queryMeta.width / queryMeta.height;
   const queryBaseName = path.basename(queryPath, path.extname(queryPath)).toLowerCase();
 
+  // 쿼리 임베딩
+  const queryEmbed = await embedder.embed(queryPath);
+
+  // 폴더 전체 스캔
   const allFiles = [];
   const walk = dir => {
     try {
@@ -144,91 +158,62 @@ ipcMain.handle('phash:scan', async (event, { queryPath, scanDir }) => {
   for (let i = 0; i < allFiles.length; i++) {
     const candPath = allFiles[i];
     if (candPath === queryPath) {
-      if (i % 10 === 0) event.sender.send('phash:scan-progress', { current: i+1, total: allFiles.length });
+      if (i % 5 === 0) event.sender.send('phash:scan-progress', { current: i+1, total: allFiles.length });
       continue;
     }
 
     try {
-      const candBuf = fs.readFileSync(candPath);
+      const candBuf  = fs.readFileSync(candPath);
       const candMeta = await sharp(candPath).metadata();
-      const candAR = candMeta.width / candMeta.height;
+      const candAR   = candMeta.width / candMeta.height;
 
-      // ─ 1단계: MD5 완전 일치 → 복사본 100% ─
+      // ─ 1단계: MD5 완전 일치 → 복사본 ─
       const candMD5 = crypto.createHash('md5').update(candBuf).digest('hex');
       if (candMD5 === queryMD5) {
         const preview = await sharp(candPath).resize(120, 120, { fit: 'cover' }).png().toBuffer();
-        results.push({
-          filePath: candPath, similarity: 100, matchType: 'exact',
-          width: candMeta.width, height: candMeta.height,
-          preview: preview.toString('base64'),
-        });
-        if (i % 10 === 0) event.sender.send('phash:scan-progress', { current: i+1, total: allFiles.length });
+        results.push({ filePath: candPath, similarity: 100, matchType: 'exact', width: candMeta.width, height: candMeta.height, preview: preview.toString('base64') });
+        if (i % 5 === 0) event.sender.send('phash:scan-progress', { current: i+1, total: allFiles.length });
         continue;
       }
 
-      // ─ 2단계: 종횡비 필터 (15% 이내만 통과) ─
-      const arDiff = Math.abs(queryAR - candAR) / queryAR;
-      if (arDiff > 0.15) {
-        if (i % 10 === 0) event.sender.send('phash:scan-progress', { current: i+1, total: allFiles.length });
+      // ─ 2단계: 종횡비 필터 (20% 이내) ─
+      if (Math.abs(queryAR - candAR) / queryAR > 0.20) {
+        if (i % 5 === 0) event.sender.send('phash:scan-progress', { current: i+1, total: allFiles.length });
         continue;
       }
 
-      // ─ 3단계: aHash 유사도 ─
-      const candAHash = await computeAHash(candPath);
-      const aHashDist = hammingDistance(queryAHash, candAHash);
-      const aHashSim = Math.round((1 - aHashDist / 64) * 100);
+      // ─ 3단계: ONNX 임베딩 코사인 유사도 ─
+      const candEmbed = await embedder.embed(candPath);
+      let embedSim = embedder.cosineSimilarity(queryEmbed, candEmbed); // 0~100
 
       // ─ 4단계: 파일명 보너스 ─
-      const candBaseName = path.basename(candPath, path.extname(candPath)).toLowerCase();
-      let nameBonus = 0;
-      if (candBaseName === queryBaseName) nameBonus = 15;
-      else if (candBaseName.includes(queryBaseName) || queryBaseName.includes(candBaseName)) nameBonus = 8;
+      const candBase = path.basename(candPath, path.extname(candPath)).toLowerCase();
+      if (candBase === queryBaseName) embedSim = Math.min(99, embedSim + 10);
+      else if (candBase.includes(queryBaseName) || queryBaseName.includes(candBase)) embedSim = Math.min(99, embedSim + 5);
 
-      // ─ 5단계: 해상도 방향 보너스 (후보가 더 크면 고화질 후보) ─
-      const queryPx = queryMeta.width * queryMeta.height;
-      const candPx = candMeta.width * candMeta.height;
-      const resBonus = candPx > queryPx ? 5 : 0;
+      // ─ 5단계: 해상도 방향 보너스 (후보가 더 크면) ─
+      const qPx = queryMeta.width * queryMeta.height;
+      const cPx = candMeta.width  * candMeta.height;
+      if (cPx > qPx) embedSim = Math.min(99, embedSim + 3);
 
-      const finalSim = Math.min(99, aHashSim + nameBonus + resBonus);
-
-      // aHash 50% 이상 + 최종 60% 이상만 표시
-      if (aHashSim >= 50 && finalSim >= 60) {
+      if (embedSim >= 70) {
         const preview = await sharp(candPath).resize(120, 120, { fit: 'cover' }).png().toBuffer();
         results.push({
           filePath: candPath,
-          similarity: finalSim,
-          matchType: finalSim >= 90 ? 'high' : 'similar',
-          width: candMeta.width,
-          height: candMeta.height,
+          similarity: embedSim,
+          matchType: embedSim >= 90 ? 'high' : 'similar',
+          width: candMeta.width, height: candMeta.height,
           preview: preview.toString('base64'),
         });
       }
     } catch(e) {}
 
-    if (i % 10 === 0) event.sender.send('phash:scan-progress', { current: i+1, total: allFiles.length });
+    if (i % 5 === 0) event.sender.send('phash:scan-progress', { current: i+1, total: allFiles.length });
   }
 
   results.sort((a, b) => b.similarity - a.similarity);
   return results.slice(0, 50);
 });
-
-// aHash: 8x8 평균 해시 (구조적 유사성에 강함, 저화질↔고화질 탐지에 적합)
-async function computeAHash(filePath) {
-  const sharp = require('sharp');
-  const { data } = await sharp(filePath)
-    .resize(8, 8, { fit: 'fill' })
-    .grayscale()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-  const avg = data.reduce((s, v) => s + v, 0) / data.length;
-  return Array.from(data).map(v => v >= avg ? 1 : 0);
-}
-
-function hammingDistance(a, b) {
-  let d = 0;
-  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) d++;
-  return d;
-}
 
 // ── Extractors ──
 async function extractFromPptx(filePath, outputDir, onProgress) {
@@ -254,7 +239,6 @@ async function extractFromPptx(filePath, outputDir, onProgress) {
   }
   return count;
 }
-
 async function extractFromDocx(filePath, outputDir, onProgress) {
   const JSZip=require('jszip'), sharp=require('sharp');
   const zip=await JSZip.loadAsync(fs.readFileSync(filePath));
@@ -267,7 +251,6 @@ async function extractFromDocx(filePath, outputDir, onProgress) {
   }
   return count;
 }
-
 async function extractFromPdf(filePath, outputDir, onProgress) {
   const { PDFDocument }=require('pdf-lib'), sharp=require('sharp');
   const pdfBytes=fs.readFileSync(filePath);
@@ -297,7 +280,6 @@ async function extractFromPdf(filePath, outputDir, onProgress) {
   if (count===0) count=await extractPdfRawImages(pdfBytes,outputDir,onProgress);
   return count;
 }
-
 async function extractPdfRawImages(pdfBytes, outputDir, onProgress) {
   const sharp=require('sharp');
   const buf=Buffer.from(pdfBytes);
@@ -316,7 +298,6 @@ async function extractPdfRawImages(pdfBytes, outputDir, onProgress) {
   }
   return count;
 }
-
 async function extractFromHwp(filePath, outputDir, onProgress) {
   const sharp=require('sharp');
   const ext=path.extname(filePath).toLowerCase();
