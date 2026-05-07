@@ -16,11 +16,6 @@ contextBridge.exposeInMainWorld('api', {
   removeProgressListener: () => ipcRenderer.removeAllListeners('extract:progress'),
   resamplePreview: p => ipcRenderer.invoke('resample:preview', p),
   resampleSave:    p => ipcRenderer.invoke('resample:save', p),
-  // 모델 준비
-  modelPrepare:        () => ipcRenderer.invoke('model:prepare'),
-  onModelProgress:     cb => ipcRenderer.on('model:progress', (_, d) => cb(d)),
-  removeModelListener: () => ipcRenderer.removeAllListeners('model:progress'),
-  // PC 검색
   phashScan:           opts => ipcRenderer.invoke('phash:scan', opts),
   onScanProgress:      cb => ipcRenderer.on('phash:scan-progress', (_, d) => cb(d)),
   onScanTotal:         cb => ipcRenderer.on('phash:scan-total', (_, d) => cb(d)),

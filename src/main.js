@@ -103,27 +103,46 @@ ipcMain.handle('resample:save', async (_, { filePath, scale }) => {
   return savePath;
 });
 
-// ── Tab 3: PC 유사 이미지 찾기 (ONNX 임베딩) ──
+// ── Tab 3: PC 유사 이미지 찾기 ──
 
-// 모델 준비 (UI에서 호출)
-ipcMain.handle('model:prepare', async (event) => {
-  const embedder = require('./embedder');
-  const userDataPath = app.getPath('userData');
+/**
+ * 이미지 픽셀 색상값 직접 비교 로직
+ *
+ * 작동 방식:
+ * 1. 두 이미지를 동일한 크기(64×64)로 리사이즈
+ * 2. 픽셀별 RGB 차이 계산 (MAE 방식)
+ * 3. 차이가 작을수록 유사도 높음
+ *
+ * 장점: 모델 파일 불필요, 오프라인 완전 동작, 빠름
+ * 단점: JPEG 압축으로 사진이 크게 달라진 경우 차이 발생 가능
+ *         → 다단계 필터로 보완
+ */
+async function pixelSimilarity(pathA, pathB) {
+  const sharp = require('sharp');
+  const SIZE = 64; // 64x64로 리사이즈
 
-  try {
-    await embedder.prepare(userDataPath, ({ stage, pct }) => {
-      event.sender.send('model:progress', { stage, pct });
-    });
-    return { success: true };
-  } catch(err) {
-    return { success: false, error: err.message };
+  const [bufA, bufB] = await Promise.all([
+    sharp(pathA).resize(SIZE, SIZE, { fit: 'fill' }).removeAlpha().raw().toBuffer(),
+    sharp(pathB).resize(SIZE, SIZE, { fit: 'fill' }).removeAlpha().raw().toBuffer(),
+  ]);
+
+  const pixels = SIZE * SIZE;
+  let totalDiff = 0;
+  for (let i = 0; i < pixels * 3; i++) {
+    totalDiff += Math.abs(bufA[i] - bufB[i]);
   }
-});
+
+  // 평균 절대 오차 (MAE): 0~255 범위
+  const mae = totalDiff / (pixels * 3);
+
+  // 0~100 점수로 변환 (mae 0 = 100점, mae 255 = 0점)
+  // 실제로 mae 30 이상이면 상당히 다른 이미지
+  // mae 0~10: 거의 동일, 10~30: 유사, 30+: 다름
+  return Math.max(0, Math.round(100 - (mae / 30) * 100));
+}
 
 ipcMain.handle('phash:scan', async (event, { queryPath, scanDir }) => {
-  const sharp    = require('sharp');
-  const embedder = require('./embedder');
-  const crypto   = require('crypto');
+  const sharp = require('sharp');
   const imageExts = new Set(['.jpg','.jpeg','.png','.bmp','.gif','.webp','.tiff']);
 
   // 쿼리 이미지 정보
@@ -131,10 +150,7 @@ ipcMain.handle('phash:scan', async (event, { queryPath, scanDir }) => {
   const queryMD5  = crypto.createHash('md5').update(queryBuf).digest('hex');
   const queryMeta = await sharp(queryPath).metadata();
   const queryAR   = queryMeta.width / queryMeta.height;
-  const queryBaseName = path.basename(queryPath, path.extname(queryPath)).toLowerCase();
-
-  // 쿼리 임베딩
-  const queryEmbed = await embedder.embed(queryPath);
+  const queryBase = path.basename(queryPath, path.extname(queryPath)).toLowerCase();
 
   // 폴더 전체 스캔
   const allFiles = [];
@@ -150,7 +166,6 @@ ipcMain.handle('phash:scan', async (event, { queryPath, scanDir }) => {
     } catch(e) {}
   };
   walk(scanDir);
-
   event.sender.send('phash:scan-total', allFiles.length);
 
   const results = [];
@@ -171,38 +186,43 @@ ipcMain.handle('phash:scan', async (event, { queryPath, scanDir }) => {
       const candMD5 = crypto.createHash('md5').update(candBuf).digest('hex');
       if (candMD5 === queryMD5) {
         const preview = await sharp(candPath).resize(120, 120, { fit: 'cover' }).png().toBuffer();
-        results.push({ filePath: candPath, similarity: 100, matchType: 'exact', width: candMeta.width, height: candMeta.height, preview: preview.toString('base64') });
+        results.push({
+          filePath: candPath, similarity: 100, matchType: 'exact',
+          width: candMeta.width, height: candMeta.height,
+          preview: preview.toString('base64'),
+        });
         if (i % 5 === 0) event.sender.send('phash:scan-progress', { current: i+1, total: allFiles.length });
         continue;
       }
 
-      // ─ 2단계: 종횡비 필터 (20% 이내) ─
+      // ─ 2단계: 종횡비 필터 (20% 이내만 통과) ─
       if (Math.abs(queryAR - candAR) / queryAR > 0.20) {
         if (i % 5 === 0) event.sender.send('phash:scan-progress', { current: i+1, total: allFiles.length });
         continue;
       }
 
-      // ─ 3단계: ONNX 임베딩 코사인 유사도 ─
-      const candEmbed = await embedder.embed(candPath);
-      let embedSim = embedder.cosineSimilarity(queryEmbed, candEmbed); // 0~100
+      // ─ 3단계: 픽셀 색상값 직접 비교 ─
+      let score = await pixelSimilarity(queryPath, candPath);
 
       // ─ 4단계: 파일명 보너스 ─
       const candBase = path.basename(candPath, path.extname(candPath)).toLowerCase();
-      if (candBase === queryBaseName) embedSim = Math.min(99, embedSim + 10);
-      else if (candBase.includes(queryBaseName) || queryBaseName.includes(candBase)) embedSim = Math.min(99, embedSim + 5);
+      if (candBase === queryBase) score = Math.min(99, score + 10);
+      else if (candBase.includes(queryBase) || queryBase.includes(candBase)) score = Math.min(99, score + 5);
 
-      // ─ 5단계: 해상도 방향 보너스 (후보가 더 크면) ─
+      // ─ 5단계: 해상도 방향 보너스 (후보가 더 크면 +3) ─
       const qPx = queryMeta.width * queryMeta.height;
       const cPx = candMeta.width  * candMeta.height;
-      if (cPx > qPx) embedSim = Math.min(99, embedSim + 3);
+      if (cPx > qPx) score = Math.min(99, score + 3);
 
-      if (embedSim >= 70) {
+      // 기준값: 55점 이상만 결과에 포함
+      if (score >= 55) {
         const preview = await sharp(candPath).resize(120, 120, { fit: 'cover' }).png().toBuffer();
         results.push({
           filePath: candPath,
-          similarity: embedSim,
-          matchType: embedSim >= 90 ? 'high' : 'similar',
-          width: candMeta.width, height: candMeta.height,
+          similarity: score,
+          matchType: score >= 85 ? 'high' : 'similar',
+          width: candMeta.width,
+          height: candMeta.height,
           preview: preview.toString('base64'),
         });
       }
