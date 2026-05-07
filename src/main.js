@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 let mainWindow;
 
@@ -91,7 +92,6 @@ ipcMain.handle('resample:preview', async (_, { filePath }) => {
   const sharp = require('sharp');
   const buf = fs.readFileSync(filePath);
   const meta = await sharp(buf).metadata();
-  // 원본 이미지 그대로 base64로 전달 (resize 안 함)
   const b64 = await sharp(buf).png().toBuffer();
   return { base64: b64.toString('base64'), width: meta.width, height: meta.height, size: buf.length };
 });
@@ -110,15 +110,18 @@ ipcMain.handle('resample:save', async (_, { filePath, scale }) => {
   return savePath;
 });
 
-// ── Tab 4: PC 유사 이미지 찾기 ──
+// ── Tab 3: PC 유사 이미지 찾기 ──
 ipcMain.handle('phash:scan', async (event, { queryPath, scanDir }) => {
   const sharp = require('sharp');
   const imageExts = new Set(['.jpg','.jpeg','.png','.bmp','.gif','.webp','.tiff']);
 
+  // 쿼리 이미지 정보 수집
+  const queryBuf = fs.readFileSync(queryPath);
+  const queryMD5 = crypto.createHash('md5').update(queryBuf).digest('hex');
   const queryMeta = await sharp(queryPath).metadata();
   const queryAR = queryMeta.width / queryMeta.height;
-  const queryHist = await computeHistogram(queryPath);
-  const queryHash = await computePHash(queryPath);
+  const queryAHash = await computeAHash(queryPath);
+  const queryBaseName = path.basename(queryPath, path.extname(queryPath)).toLowerCase();
 
   const allFiles = [];
   const walk = dir => {
@@ -137,115 +140,95 @@ ipcMain.handle('phash:scan', async (event, { queryPath, scanDir }) => {
   event.sender.send('phash:scan-total', allFiles.length);
 
   const results = [];
+
   for (let i = 0; i < allFiles.length; i++) {
-    if (allFiles[i] === queryPath) continue;
+    const candPath = allFiles[i];
+    if (candPath === queryPath) {
+      if (i % 10 === 0) event.sender.send('phash:scan-progress', { current: i+1, total: allFiles.length });
+      continue;
+    }
+
     try {
-      const candMeta = await sharp(allFiles[i]).metadata();
+      const candBuf = fs.readFileSync(candPath);
+      const candMeta = await sharp(candPath).metadata();
       const candAR = candMeta.width / candMeta.height;
 
-      // 종횡비 필터: 20% 이상 차이나면 스킵
-      const arDiff = Math.abs(queryAR - candAR) / queryAR;
-      if (arDiff > 0.20) { if(i%10===0) event.sender.send('phash:scan-progress',{current:i+1,total:allFiles.length}); continue; }
-
-      // 1. 색상 히스토그램 유사도 (70% 가중)
-      const candHist = await computeHistogram(allFiles[i]);
-      const histSim = computeHistSimilarity(queryHist, candHist);
-
-      // 2. pHash 유사도 (30% 가중)
-      const candHash = await computePHash(allFiles[i]);
-      const dist = hammingDistance(queryHash, candHash);
-      const hashSim = Math.round((1 - dist / 64) * 100);
-
-      // 3. 최종 유사도
-      const finalSim = Math.round(histSim * 0.7 + hashSim * 0.3);
-
-      if (finalSim >= 65) {
-        const preview = await sharp(allFiles[i]).resize(120, 120, { fit: 'cover' }).png().toBuffer();
+      // ─ 1단계: MD5 완전 일치 → 복사본 100% ─
+      const candMD5 = crypto.createHash('md5').update(candBuf).digest('hex');
+      if (candMD5 === queryMD5) {
+        const preview = await sharp(candPath).resize(120, 120, { fit: 'cover' }).png().toBuffer();
         results.push({
-          filePath: allFiles[i],
+          filePath: candPath, similarity: 100, matchType: 'exact',
+          width: candMeta.width, height: candMeta.height,
+          preview: preview.toString('base64'),
+        });
+        if (i % 10 === 0) event.sender.send('phash:scan-progress', { current: i+1, total: allFiles.length });
+        continue;
+      }
+
+      // ─ 2단계: 종횡비 필터 (15% 이내만 통과) ─
+      const arDiff = Math.abs(queryAR - candAR) / queryAR;
+      if (arDiff > 0.15) {
+        if (i % 10 === 0) event.sender.send('phash:scan-progress', { current: i+1, total: allFiles.length });
+        continue;
+      }
+
+      // ─ 3단계: aHash 유사도 ─
+      const candAHash = await computeAHash(candPath);
+      const aHashDist = hammingDistance(queryAHash, candAHash);
+      const aHashSim = Math.round((1 - aHashDist / 64) * 100);
+
+      // ─ 4단계: 파일명 보너스 ─
+      const candBaseName = path.basename(candPath, path.extname(candPath)).toLowerCase();
+      let nameBonus = 0;
+      if (candBaseName === queryBaseName) nameBonus = 15;
+      else if (candBaseName.includes(queryBaseName) || queryBaseName.includes(candBaseName)) nameBonus = 8;
+
+      // ─ 5단계: 해상도 방향 보너스 (후보가 더 크면 고화질 후보) ─
+      const queryPx = queryMeta.width * queryMeta.height;
+      const candPx = candMeta.width * candMeta.height;
+      const resBonus = candPx > queryPx ? 5 : 0;
+
+      const finalSim = Math.min(99, aHashSim + nameBonus + resBonus);
+
+      // aHash 50% 이상 + 최종 60% 이상만 표시
+      if (aHashSim >= 50 && finalSim >= 60) {
+        const preview = await sharp(candPath).resize(120, 120, { fit: 'cover' }).png().toBuffer();
+        results.push({
+          filePath: candPath,
           similarity: finalSim,
+          matchType: finalSim >= 90 ? 'high' : 'similar',
           width: candMeta.width,
           height: candMeta.height,
           preview: preview.toString('base64'),
         });
       }
     } catch(e) {}
-    if (i % 10 === 0) event.sender.send('phash:scan-progress', {current:i+1,total:allFiles.length});
+
+    if (i % 10 === 0) event.sender.send('phash:scan-progress', { current: i+1, total: allFiles.length });
   }
 
   results.sort((a, b) => b.similarity - a.similarity);
   return results.slice(0, 50);
 });
 
-// 색상 히스토그램 (R/G/B/휘도 각 32번 구간)
-async function computeHistogram(filePath) {
-  const sharp = require('sharp');
-  const { data, info } = await sharp(filePath)
-    .resize(64, 64, { fit: 'fill' })
-    .removeAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-
-  const bins = 32;
-  const rHist = new Float32Array(bins);
-  const gHist = new Float32Array(bins);
-  const bHist = new Float32Array(bins);
-
-  const pixels = info.width * info.height;
-  for (let i = 0; i < data.length; i += 3) {
-    rHist[Math.floor(data[i]   / 256 * bins)]++;
-    gHist[Math.floor(data[i+1] / 256 * bins)]++;
-    bHist[Math.floor(data[i+2] / 256 * bins)]++;
-  }
-
-  // 정규화
-  for (let i = 0; i < bins; i++) {
-    rHist[i] /= pixels;
-    gHist[i] /= pixels;
-    bHist[i] /= pixels;
-  }
-
-  return { r: rHist, g: gHist, b: bHist };
-}
-
-// 지표함수(바타차르야 계수) 로 히스토그램 유사도
-function computeHistSimilarity(h1, h2) {
-  let sim = 0;
-  const bins = h1.r.length;
-  for (let i = 0; i < bins; i++) {
-    sim += Math.min(h1.r[i], h2.r[i]);
-    sim += Math.min(h1.g[i], h2.g[i]);
-    sim += Math.min(h1.b[i], h2.b[i]);
-  }
-  return Math.round(sim / 3 * 100);
-}
-
-async function computePHash(filePath) {
+// aHash: 8x8 평균 해시 (구조적 유사성에 강함, 저화질↔고화질 탐지에 적합)
+async function computeAHash(filePath) {
   const sharp = require('sharp');
   const { data } = await sharp(filePath)
-    .resize(32, 32, { fit: 'fill' })
+    .resize(8, 8, { fit: 'fill' })
     .grayscale()
     .raw()
     .toBuffer({ resolveWithObject: true });
-  const pixels = Array.from(data);
-  const size = 32, dctSize = 8;
-  const dct = [];
-  for (let u = 0; u < dctSize; u++) {
-    for (let v = 0; v < dctSize; v++) {
-      let sum = 0;
-      for (let x = 0; x < size; x++)
-        for (let y = 0; y < size; y++)
-          sum += pixels[x*size+y] * Math.cos(((2*x+1)*u*Math.PI)/(2*size)) * Math.cos(((2*y+1)*v*Math.PI)/(2*size));
-      const cu = u===0?1/Math.sqrt(2):1, cv = v===0?1/Math.sqrt(2):1;
-      dct.push((2/size)*cu*cv*sum);
-    }
-  }
-  dct.shift();
-  const avg = dct.reduce((a,b)=>a+b,0)/dct.length;
-  return dct.map(v => v > avg ? 1 : 0);
+  const avg = data.reduce((s, v) => s + v, 0) / data.length;
+  return Array.from(data).map(v => v >= avg ? 1 : 0);
 }
 
-function hammingDistance(a, b) { let d=0; for(let i=0;i<a.length;i++) if(a[i]!==b[i]) d++; return d; }
+function hammingDistance(a, b) {
+  let d = 0;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) d++;
+  return d;
+}
 
 // ── Extractors ──
 async function extractFromPptx(filePath, outputDir, onProgress) {
