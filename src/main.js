@@ -91,8 +91,9 @@ ipcMain.handle('resample:preview', async (_, { filePath }) => {
   const sharp = require('sharp');
   const buf = fs.readFileSync(filePath);
   const meta = await sharp(buf).metadata();
-  const preview = await sharp(buf).resize(800, 600, { fit: 'inside', withoutEnlargement: true }).png().toBuffer();
-  return { base64: preview.toString('base64'), width: meta.width, height: meta.height, size: buf.length };
+  // 원본 이미지 그대로 base64로 전달 (resize 안 함)
+  const b64 = await sharp(buf).png().toBuffer();
+  return { base64: b64.toString('base64'), width: meta.width, height: meta.height, size: buf.length };
 });
 
 ipcMain.handle('resample:save', async (_, { filePath, scale }) => {
@@ -103,7 +104,9 @@ ipcMain.handle('resample:save', async (_, { filePath, scale }) => {
   });
   if (canceled || !savePath) return null;
   const meta = await sharp(filePath).metadata();
-  await sharp(filePath).resize(Math.round(meta.width*scale), Math.round(meta.height*scale), { kernel: sharp.kernel.lanczos3 }).png().toFile(savePath);
+  await sharp(filePath)
+    .resize(Math.round(meta.width * scale), Math.round(meta.height * scale), { kernel: sharp.kernel.lanczos3 })
+    .png().toFile(savePath);
   return savePath;
 });
 
@@ -112,10 +115,10 @@ ipcMain.handle('phash:scan', async (event, { queryPath, scanDir }) => {
   const sharp = require('sharp');
   const imageExts = new Set(['.jpg','.jpeg','.png','.bmp','.gif','.webp','.tiff']);
 
-  // 쿼리 이미지 정보
   const queryMeta = await sharp(queryPath).metadata();
+  const queryAR = queryMeta.width / queryMeta.height;
+  const queryHist = await computeHistogram(queryPath);
   const queryHash = await computePHash(queryPath);
-  const queryAR = queryMeta.width / queryMeta.height; // 종횡비
 
   const allFiles = [];
   const walk = dir => {
@@ -135,33 +138,34 @@ ipcMain.handle('phash:scan', async (event, { queryPath, scanDir }) => {
 
   const results = [];
   for (let i = 0; i < allFiles.length; i++) {
-    if (allFiles[i] === queryPath) { event.sender.send('phash:scan-progress', {current:i+1,total:allFiles.length}); continue; }
+    if (allFiles[i] === queryPath) continue;
     try {
       const candMeta = await sharp(allFiles[i]).metadata();
       const candAR = candMeta.width / candMeta.height;
 
-      // 1. 종횡비 차이 필터 (10% 이상 차이나면 제외)
+      // 종횡비 필터: 20% 이상 차이나면 스킵
       const arDiff = Math.abs(queryAR - candAR) / queryAR;
-      if (arDiff > 0.1) { event.sender.send('phash:scan-progress', {current:i+1,total:allFiles.length}); continue; }
+      if (arDiff > 0.20) { if(i%10===0) event.sender.send('phash:scan-progress',{current:i+1,total:allFiles.length}); continue; }
 
-      // 2. pHash 유사도
+      // 1. 색상 히스토그램 유사도 (70% 가중)
+      const candHist = await computeHistogram(allFiles[i]);
+      const histSim = computeHistSimilarity(queryHist, candHist);
+
+      // 2. pHash 유사도 (30% 가중)
       const candHash = await computePHash(allFiles[i]);
       const dist = hammingDistance(queryHash, candHash);
       const hashSim = Math.round((1 - dist / 64) * 100);
 
-      // 3. 해상도 비율 보너스 (후보가 더 크면 고화질 가능성)
-      const queryPx = queryMeta.width * queryMeta.height;
-      const candPx = candMeta.width * candMeta.height;
-      const resSim = candPx >= queryPx ? 100 : Math.round((candPx / queryPx) * 100);
+      // 3. 최종 유사도
+      const finalSim = Math.round(histSim * 0.7 + hashSim * 0.3);
 
-      // 4. 최종 유사도: pHash 80% + 해상도비율 20%
-      const finalSim = Math.round(hashSim * 0.8 + resSim * 0.2);
-
-      if (finalSim >= 75) {
+      if (finalSim >= 65) {
         const preview = await sharp(allFiles[i]).resize(120, 120, { fit: 'cover' }).png().toBuffer();
         results.push({
-          filePath: allFiles[i], similarity: finalSim,
-          width: candMeta.width, height: candMeta.height,
+          filePath: allFiles[i],
+          similarity: finalSim,
+          width: candMeta.width,
+          height: candMeta.height,
           preview: preview.toString('base64'),
         });
       }
@@ -173,9 +177,56 @@ ipcMain.handle('phash:scan', async (event, { queryPath, scanDir }) => {
   return results.slice(0, 50);
 });
 
+// 색상 히스토그램 (R/G/B/휘도 각 32번 구간)
+async function computeHistogram(filePath) {
+  const sharp = require('sharp');
+  const { data, info } = await sharp(filePath)
+    .resize(64, 64, { fit: 'fill' })
+    .removeAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const bins = 32;
+  const rHist = new Float32Array(bins);
+  const gHist = new Float32Array(bins);
+  const bHist = new Float32Array(bins);
+
+  const pixels = info.width * info.height;
+  for (let i = 0; i < data.length; i += 3) {
+    rHist[Math.floor(data[i]   / 256 * bins)]++;
+    gHist[Math.floor(data[i+1] / 256 * bins)]++;
+    bHist[Math.floor(data[i+2] / 256 * bins)]++;
+  }
+
+  // 정규화
+  for (let i = 0; i < bins; i++) {
+    rHist[i] /= pixels;
+    gHist[i] /= pixels;
+    bHist[i] /= pixels;
+  }
+
+  return { r: rHist, g: gHist, b: bHist };
+}
+
+// 지표함수(바타차르야 계수) 로 히스토그램 유사도
+function computeHistSimilarity(h1, h2) {
+  let sim = 0;
+  const bins = h1.r.length;
+  for (let i = 0; i < bins; i++) {
+    sim += Math.min(h1.r[i], h2.r[i]);
+    sim += Math.min(h1.g[i], h2.g[i]);
+    sim += Math.min(h1.b[i], h2.b[i]);
+  }
+  return Math.round(sim / 3 * 100);
+}
+
 async function computePHash(filePath) {
   const sharp = require('sharp');
-  const { data } = await sharp(filePath).resize(32, 32, { fit: 'fill' }).grayscale().raw().toBuffer({ resolveWithObject: true });
+  const { data } = await sharp(filePath)
+    .resize(32, 32, { fit: 'fill' })
+    .grayscale()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
   const pixels = Array.from(data);
   const size = 32, dctSize = 8;
   const dct = [];
@@ -203,18 +254,18 @@ async function extractFromPptx(filePath, outputDir, onProgress) {
   const slideRelsMap = {};
   const slideFiles = Object.keys(zip.files).filter(f=>f.match(/^ppt\/slides\/slide\d+\.xml$/)).sort((a,b)=>parseInt(a.match(/slide(\d+)/)[1])-parseInt(b.match(/slide(\d+)/)[1]));
   for (const sf of slideFiles) {
-    const sn = parseInt(sf.match(/slide(\d+)/)[1]);
-    const rp = sf.replace('ppt/slides/','ppt/slides/_rels/')+'.rels';
+    const sn=parseInt(sf.match(/slide(\d+)/)[1]);
+    const rp=sf.replace('ppt/slides/','ppt/slides/_rels/')+'.rels';
     if (zip.files[rp]) {
-      const rx = await zip.files[rp].async('string');
-      slideRelsMap[sn] = [...rx.matchAll(/Type=".*\/image"[^>]*Target="([^"]+)"/g)].map(m=>{const t=m[1];return t.startsWith('../')?'ppt/'+t.replace('../',''):`ppt/slides/${t}`;});
+      const rx=await zip.files[rp].async('string');
+      slideRelsMap[sn]=[...rx.matchAll(/Type=".*\/image"[^>]*Target="([^"]+)"/g)].map(m=>{const t=m[1];return t.startsWith('../')?'ppt/'+t.replace('../',''):`ppt/slides/${t}`;});
     }
   }
-  let count = 0;
+  let count=0;
   for (const sn of Object.keys(slideRelsMap).map(Number).sort((a,b)=>a-b)) {
     for (let i=0;i<slideRelsMap[sn].length;i++) {
       if (!zip.files[slideRelsMap[sn][i]]) continue;
-      const buf = Buffer.from(await zip.files[slideRelsMap[sn][i]].async('arraybuffer'));
+      const buf=Buffer.from(await zip.files[slideRelsMap[sn][i]].async('arraybuffer'));
       try { await sharp(buf).png().toFile(path.join(outputDir,`${String(sn).padStart(3,'0')}-${String(i+1).padStart(2,'0')}.png`)); count++; onProgress(count); } catch(e){}
     }
   }
@@ -222,62 +273,61 @@ async function extractFromPptx(filePath, outputDir, onProgress) {
 }
 
 async function extractFromDocx(filePath, outputDir, onProgress) {
-  const JSZip = require('jszip'), sharp = require('sharp');
-  const zip = await JSZip.loadAsync(fs.readFileSync(filePath));
-  const mf = Object.keys(zip.files).filter(f=>f.startsWith('word/media/')&&!zip.files[f].dir).sort();
-  let count = 0;
+  const JSZip=require('jszip'), sharp=require('sharp');
+  const zip=await JSZip.loadAsync(fs.readFileSync(filePath));
+  const mf=Object.keys(zip.files).filter(f=>f.startsWith('word/media/')&&!zip.files[f].dir).sort();
+  let count=0;
   for (const f of mf) {
     if (!['.png','.jpg','.jpeg','.gif','.bmp','.tiff','.webp'].includes(path.extname(f).toLowerCase())) continue;
-    const buf = Buffer.from(await zip.files[f].async('arraybuffer'));
+    const buf=Buffer.from(await zip.files[f].async('arraybuffer'));
     try { await sharp(buf).png().toFile(path.join(outputDir,`${String(count+1).padStart(3,'0')}-01.png`)); count++; onProgress(count); } catch(e){}
   }
   return count;
 }
 
 async function extractFromPdf(filePath, outputDir, onProgress) {
-  const { PDFDocument } = require('pdf-lib'), sharp = require('sharp');
-  const pdfBytes = fs.readFileSync(filePath);
-  const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
-  let count = 0;
-  for (let pi=0; pi<pdfDoc.getPages().length; pi++) {
-    const page = pdfDoc.getPages()[pi], pageNum = String(pi+1).padStart(3,'0');
+  const { PDFDocument }=require('pdf-lib'), sharp=require('sharp');
+  const pdfBytes=fs.readFileSync(filePath);
+  const pdfDoc=await PDFDocument.load(pdfBytes,{ignoreEncryption:true});
+  let count=0;
+  for (let pi=0;pi<pdfDoc.getPages().length;pi++) {
+    const page=pdfDoc.getPages()[pi], pageNum=String(pi+1).padStart(3,'0');
     try {
-      const resources = page.node.get(page.node.context.obj('Resources'));
+      const resources=page.node.get(page.node.context.obj('Resources'));
       if (!resources) continue;
-      const xObjects = resources.get(resources.context.obj('XObject'));
+      const xObjects=resources.get(resources.context.obj('XObject'));
       if (!xObjects) continue;
       let imgIdx=0;
       for (const key of (xObjects.keys?xObjects.keys():[])) {
         try {
-          const xObj = xObjects.get(key);
+          const xObj=xObjects.get(key);
           if (!xObj) continue;
-          const subtype = xObj.get(xObj.context.obj('Subtype'));
+          const subtype=xObj.get(xObj.context.obj('Subtype'));
           if (!subtype||subtype.toString()!=='/Image') continue;
           if (!xObj.contents) continue;
-          const raw = xObj.contents();
-          await sharp(Buffer.from(raw)).png().toFile(path.join(outputDir,`${pageNum}-${String(imgIdx+1).padStart(2,'0')}.png`));
+          await sharp(Buffer.from(xObj.contents())).png().toFile(path.join(outputDir,`${pageNum}-${String(imgIdx+1).padStart(2,'0')}.png`));
           count++; imgIdx++; onProgress(count);
         } catch(e){}
       }
     } catch(e){}
   }
-  if (count===0) count = await extractPdfRawImages(pdfBytes, outputDir, onProgress);
+  if (count===0) count=await extractPdfRawImages(pdfBytes,outputDir,onProgress);
   return count;
 }
 
 async function extractPdfRawImages(pdfBytes, outputDir, onProgress) {
-  const sharp = require('sharp');
-  const buf = Buffer.from(pdfBytes);
-  let count=0, offset=0;
-  const jpegEnd=Buffer.from([0xFF,0xD9]), pngSig=Buffer.from([0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A]), iendSig=Buffer.from([0x49,0x45,0x4E,0x44,0xAE,0x42,0x60,0x82]);
-  while (offset < buf.length-8) {
+  const sharp=require('sharp');
+  const buf=Buffer.from(pdfBytes);
+  let count=0,offset=0;
+  const jpegEnd=Buffer.from([0xFF,0xD9]),pngSig=Buffer.from([0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A]),iendSig=Buffer.from([0x49,0x45,0x4E,0x44,0xAE,0x42,0x60,0x82]);
+  while (offset<buf.length-8) {
     if (buf[offset]===0xFF&&buf[offset+1]===0xD8&&buf[offset+2]===0xFF) {
       const end=buf.indexOf(jpegEnd,offset+3);
-      if (end!==-1&&end-offset>100) { try { await sharp(buf.slice(offset,end+2)).png().toFile(path.join(outputDir,`${String(count+1).padStart(3,'0')}-01.png`)); count++; onProgress(count); offset=end+2; continue; } catch(e){} }
+      if (end!==-1&&end-offset>100){try{await sharp(buf.slice(offset,end+2)).png().toFile(path.join(outputDir,`${String(count+1).padStart(3,'0')}-01.png`));count++;onProgress(count);offset=end+2;continue;}catch(e){}}
     }
     if (buf[offset]===0x89&&buf.slice(offset,offset+8).equals(pngSig)) {
       const iend=buf.indexOf(iendSig,offset+8);
-      if (iend!==-1&&iend-offset>100) { try { await sharp(buf.slice(offset,iend+8)).png().toFile(path.join(outputDir,`${String(count+1).padStart(3,'0')}-01.png`)); count++; onProgress(count); offset=iend+8; continue; } catch(e){} }
+      if (iend!==-1&&iend-offset>100){try{await sharp(buf.slice(offset,iend+8)).png().toFile(path.join(outputDir,`${String(count+1).padStart(3,'0')}-01.png`));count++;onProgress(count);offset=iend+8;continue;}catch(e){}}
     }
     offset++;
   }
@@ -285,28 +335,28 @@ async function extractPdfRawImages(pdfBytes, outputDir, onProgress) {
 }
 
 async function extractFromHwp(filePath, outputDir, onProgress) {
-  const sharp = require('sharp');
-  const ext = path.extname(filePath).toLowerCase();
+  const sharp=require('sharp');
+  const ext=path.extname(filePath).toLowerCase();
   if (ext==='.hwpx') {
-    const JSZip = require('jszip');
-    const zip = await JSZip.loadAsync(fs.readFileSync(filePath));
-    const mf = Object.keys(zip.files).filter(f=>(f.includes('BinData')||f.includes('Contents/image'))&&!zip.files[f].dir).sort();
+    const JSZip=require('jszip');
+    const zip=await JSZip.loadAsync(fs.readFileSync(filePath));
+    const mf=Object.keys(zip.files).filter(f=>(f.includes('BinData')||f.includes('Contents/image'))&&!zip.files[f].dir).sort();
     let count=0;
     for (let i=0;i<mf.length;i++) {
-      try { await sharp(Buffer.from(await zip.files[mf[i]].async('arraybuffer'))).png().toFile(path.join(outputDir,`${String(i+1).padStart(3,'0')}-01.png`)); count++; onProgress(count); } catch(e){}
+      try{await sharp(Buffer.from(await zip.files[mf[i]].async('arraybuffer'))).png().toFile(path.join(outputDir,`${String(i+1).padStart(3,'0')}-01.png`));count++;onProgress(count);}catch(e){}
     }
     return count;
   } else {
     try {
-      const { toJson } = require('@ohah/hwpjs');
-      const doc = JSON.parse(toJson(fs.readFileSync(filePath)));
-      const binData = doc?.bodyText?.binData||doc?.binData||[];
+      const {toJson}=require('@ohah/hwpjs');
+      const doc=JSON.parse(toJson(fs.readFileSync(filePath)));
+      const binData=doc?.bodyText?.binData||doc?.binData||[];
       let count=0;
       for (let i=0;i<binData.length;i++) {
         if (!binData[i]?.data) continue;
-        try { await sharp(Buffer.from(binData[i].data,'base64')).png().toFile(path.join(outputDir,`${String(i+1).padStart(3,'0')}-01.png`)); count++; onProgress(count); } catch(e){}
+        try{await sharp(Buffer.from(binData[i].data,'base64')).png().toFile(path.join(outputDir,`${String(i+1).padStart(3,'0')}-01.png`));count++;onProgress(count);}catch(e){}
       }
       return count;
-    } catch(e) { throw new Error(`HWP 파싱 실패: ${e.message}`); }
+    } catch(e){throw new Error(`HWP 파싱 실패: ${e.message}`);}
   }
 }

@@ -62,6 +62,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .btn-icon:hover:not(:disabled){background:#4e5058;color:var(--text)}
 .btn-icon:disabled{opacity:.4;cursor:not-allowed}
 
+/* File list */
 .file-list-wrap{flex:1;min-height:0;display:flex;flex-direction:column;gap:6px;overflow:hidden}
 .file-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px;min-height:0}
 .file-list::-webkit-scrollbar{width:4px}
@@ -96,56 +97,58 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .resample-controls label{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px}
 .resample-controls input[type=range]{accent-color:var(--brand);width:140px}
 .resample-info{font-size:12px;color:var(--muted);flex-shrink:0;text-align:center}
-/* 비교 뷰: 두 이미지 동일 크기로 겹치고 clip-path로 분할 */
+
+/* 비교 영역: 반드시 부모 크기를 꽉 채우고, 이미지는 object-fit:contain으로 비율 유지 */
 .compare-wrap{
-  flex:1;position:relative;overflow:hidden;border-radius:var(--r-lg);
-  background:#111;min-height:0;display:none;
+  flex:1;
+  position:relative;
+  overflow:hidden;
+  border-radius:var(--r-lg);
+  background:#111;
+  min-height:0;
+  display:none;
 }
 .compare-wrap.has-img{display:block}
-.compare-canvas-wrap{
-  position:absolute;inset:0;
-  display:flex;align-items:center;justify-content:center;
-}
+
+/* 두 이미지는 같은 영역에 일치시켜야 함: 같은 object-fit:contain 기준 */
 .compare-img{
   position:absolute;
-  max-width:100%;max-height:100%;
-  width:auto;height:auto;
-  object-fit:contain;
-  top:50%;left:50%;transform:translate(-50%,-50%);
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:contain;   /* 비율 유지한채 영역에 맞게 */
+  object-position:center;
 }
-/* processed는 왼쪽 절반만 보임 (clip-path로 제어) */
 .compare-img.processed{
   clip-path:inset(0 50% 0 0);
 }
+
 .compare-divider{
   position:absolute;top:0;left:50%;transform:translateX(-50%);
-  width:2px;height:100%;background:var(--white);z-index:10;
-  pointer-events:none;
+  width:2px;height:100%;background:rgba(255,255,255,0.9);
+  pointer-events:none;z-index:10;
 }
 .compare-handle{
-  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  width:32px;height:32px;border-radius:50%;
-  background:var(--white);box-shadow:0 2px 8px rgba(0,0,0,.5);
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:34px;height:34px;border-radius:50%;
+  background:var(--white);box-shadow:0 2px 10px rgba(0,0,0,.6);
   cursor:ew-resize;z-index:11;
   display:flex;align-items:center;justify-content:center;
+  font-size:10px;color:#333;
 }
-.compare-handle::after{content:'◀ ▶';font-size:8px;color:#333;letter-spacing:-1px}
+.compare-handle::after{content:'◄ ►';letter-spacing:-1px}
 .compare-label{
-  position:absolute;top:12px;font-size:11px;font-weight:700;
-  padding:3px 8px;border-radius:10px;background:rgba(0,0,0,.6);
-  color:var(--white);pointer-events:none;z-index:12;
+  position:absolute;top:12px;
+  font-size:11px;font-weight:700;
+  padding:3px 8px;border-radius:10px;
+  background:rgba(0,0,0,.6);color:var(--white);
+  pointer-events:none;z-index:12;
 }
-.label-orig{left:12px}
-.label-proc{right:12px}
+.label-orig{right:12px}
+.label-proc{left:12px}
 
-/* Tab3: Web Search (구글 렌즈 직접 표시) */
-.webview-wrap{flex:1;border-radius:var(--r-lg);overflow:hidden;background:#1a1a1a;display:flex;flex-direction:column;min-height:0}
-.webview-toolbar{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--sidebar);border-bottom:1px solid var(--border);flex-shrink:0}
-.webview-hint{font-size:11px;color:var(--muted);padding:3px 8px;background:var(--elevated);border-radius:var(--r)}
-.webview-url{flex:1;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-webview{flex:1;width:100%}
-
-/* Tab4: PC Search */
+/* Tab3: PC Search */
 .pc-top{display:flex;gap:10px;flex-shrink:0}
 .pc-query-zone{flex:1;border:2px dashed var(--brand-b);border-radius:var(--r-lg);padding:16px;text-align:center;cursor:pointer;background:var(--brand-dim);transition:all .15s;min-height:90px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
 .pc-query-zone:hover,.pc-query-zone.over{border-color:var(--brand);background:rgba(88,101,242,.2)}
@@ -164,6 +167,13 @@ webview{flex:1;width:100%}
 .pc-result-badge{position:absolute;bottom:4px;right:4px;font-size:10px;font-weight:700;padding:2px 6px;border-radius:8px;background:rgba(0,0,0,.75);color:var(--white)}
 .pc-result-res{position:absolute;bottom:4px;left:4px;font-size:9px;padding:2px 5px;border-radius:6px;background:rgba(0,0,0,.6);color:rgba(255,255,255,.7)}
 .pc-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:13px;grid-column:1/-1}
+
+/* Tab4: Web */
+.webview-wrap{flex:1;border-radius:var(--r-lg);overflow:hidden;background:#1a1a1a;display:flex;flex-direction:column;min-height:0}
+.webview-toolbar{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--sidebar);border-bottom:1px solid var(--border);flex-shrink:0}
+.webview-hint{font-size:11px;color:var(--muted);padding:3px 8px;background:var(--elevated);border-radius:var(--r)}
+.webview-url{flex:1;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+webview{flex:1;width:100%}
 </style>
 </head>
 <body>
@@ -180,7 +190,6 @@ webview{flex:1;width:100%}
     </div>
   </div>
 
-  <!-- 탭 순서: 이미지추출 / 화질리샘플링 / PC에서찾기 / 웹에서찾기 -->
   <div class="tabbar">
     <div class="tab active" data-tab="extract">🖼 이미지 추출</div>
     <div class="tab" data-tab="resample">✨ 화질 리샘플링</div>
@@ -190,7 +199,7 @@ webview{flex:1;width:100%}
 
   <div class="panels">
 
-    <!-- Tab 1: 이미지 추출 -->
+    <!-- Tab1: 이미지 추출 -->
     <div class="panel active" id="panel-extract">
       <div class="drop-zone" id="dz1">
         <div class="dz-icon">📄</div>
@@ -215,7 +224,7 @@ webview{flex:1;width:100%}
       </div>
     </div>
 
-    <!-- Tab 2: 화질 리샘플링 -->
+    <!-- Tab2: 화질 리샘플링 -->
     <div class="panel" id="panel-resample">
       <div class="drop-zone" id="dz2">
         <div class="dz-icon">🖼</div>
@@ -227,18 +236,18 @@ webview{flex:1;width:100%}
         <button class="btn-sm" id="btnResampleSave">💾 저장</button>
       </div>
       <div class="resample-info" id="resampleInfo"></div>
+      <!-- 비교 래퍼: flex:1로 나머지 공간 모두 사용, 이미지는 object-fit:contain으로 칄마 크기에 맞게 -->
       <div class="compare-wrap" id="compareWrap">
-        <!-- processed가 왼쪽(업스케일), orig가 오른쪽(원본) -->
         <img class="compare-img processed" id="imgProc" alt="업스케일">
         <img class="compare-img" id="imgOrig" alt="원본">
         <div class="compare-divider" id="compareDivider"></div>
         <div class="compare-handle" id="compareHandle"></div>
-        <span class="compare-label label-orig" style="right:12px;left:auto">원본</span>
-        <span class="compare-label label-proc" style="left:12px">업스케일</span>
+        <span class="compare-label label-proc">업스케일</span>
+        <span class="compare-label label-orig">원본</span>
       </div>
     </div>
 
-    <!-- Tab 3: PC에서 찾기 -->
+    <!-- Tab3: PC에서 찾기 -->
     <div class="panel" id="panel-pcsearch">
       <div class="pc-top">
         <div class="pc-query-zone" id="dz4">
@@ -260,7 +269,7 @@ webview{flex:1;width:100%}
       </div>
     </div>
 
-    <!-- Tab 4: 웹에서 찾기 (구글 렌즈 바로 표시) -->
+    <!-- Tab4: 웹에서 찾기 -->
     <div class="panel" id="panel-websearch">
       <div class="webview-wrap">
         <div class="webview-toolbar">
@@ -276,21 +285,19 @@ webview{flex:1;width:100%}
 </div>
 
 <script>
-// Tab switching
-const tabs = document.querySelectorAll('.tab');
-const panels = document.querySelectorAll('.panel');
-tabs.forEach(t => t.addEventListener('click', () => {
+const tabs=document.querySelectorAll('.tab');
+const panels=document.querySelectorAll('.panel');
+tabs.forEach(t=>t.addEventListener('click',()=>{
   tabs.forEach(x=>x.classList.remove('active'));
   panels.forEach(x=>x.classList.remove('active'));
   t.classList.add('active');
   document.getElementById('panel-'+t.dataset.tab).classList.add('active');
 }));
+document.getElementById('btnMin').onclick=()=>window.api.windowMinimize();
+document.getElementById('btnMax').onclick=()=>window.api.windowMaximize();
+document.getElementById('btnClose').onclick=()=>window.api.windowClose();
 
-document.getElementById('btnMin').onclick = () => window.api.windowMinimize();
-document.getElementById('btnMax').onclick = () => window.api.windowMaximize();
-document.getElementById('btnClose').onclick = () => window.api.windowClose();
-
-// ── Tab 1: 이미지 추출 ──
+// ─ Tab1: 이미지 추출 ─
 const state1={files:[],outputDir:null,running:false,lastDir:null};
 const dz1=document.getElementById('dz1');
 const fileList=document.getElementById('fileList');
@@ -299,20 +306,17 @@ const progressWrap=document.getElementById('progressWrap');
 const progressBar=document.getElementById('progressBar');
 const btnExtract=document.getElementById('btnExtract');
 const btnOpenFolder=document.getElementById('btnOpenFolder');
-
-setupDrop(dz1, addFiles1);
-dz1.addEventListener('click', async()=>{const p=await window.api.openFile();if(p.length)addFiles1(p);});
-
+setupDrop(dz1,addFiles1);
+dz1.addEventListener('click',async()=>{const p=await window.api.openFile();if(p.length)addFiles1(p);});
 function addFiles1(paths){
   const ok=['pptx','ppt','docx','doc','pdf','hwp','hwpx'];
   for(const p of paths){
-    const name=p.split(/[\\\/]/).pop(), ext=name.split('.').pop().toLowerCase();
+    const name=p.split(/[\\\/]/).pop(),ext=name.split('.').pop().toLowerCase();
     if(!ok.includes(ext)||state1.files.find(f=>f.path===p))continue;
     state1.files.push({path:p,name,ext,status:'idle',imageCount:0,error:''});
   }
   renderFiles();updateBtn1();
 }
-
 function renderFiles(){
   if(!state1.files.length){fileList.innerHTML='<div class="empty-state">추가된 파일이 없습니다</div>';return;}
   fileList.innerHTML=state1.files.map((f,i)=>`
@@ -324,24 +328,19 @@ function renderFiles(){
     </div>`).join('');
   fileList.querySelectorAll('.file-remove').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();state1.files.splice(+b.dataset.i,1);renderFiles();updateBtn1();}));
 }
-
 function badgeHtml(f){
-  if(f.status==='idle') return '<span class="file-badge badge-idle">대기</span>';
-  if(f.status==='processing') return `<span class="file-badge badge-processing"><span class="spinner"></span>${f.imageCount}장</span>`;
-  if(f.status==='done') return `<span class="file-badge badge-done">✓ ${f.imageCount}장</span>`;
-  if(f.status==='error') return '<span class="file-badge badge-error">오류</span>';
+  if(f.status==='idle')return '<span class="file-badge badge-idle">대기</span>';
+  if(f.status==='processing')return `<span class="file-badge badge-processing"><span class="spinner"></span>${f.imageCount}장</span>`;
+  if(f.status==='done')return `<span class="file-badge badge-done">✓ ${f.imageCount}장</span>`;
+  if(f.status==='error')return '<span class="file-badge badge-error">오류</span>';
   return '';
 }
-
 function updateBtn1(){btnExtract.disabled=state1.running||!state1.files.length||!state1.outputDir;}
-
 document.getElementById('btnSelectFolder').addEventListener('click',async()=>{
   const f=await window.api.openFolder();
   if(f){state1.outputDir=f;outputPath.textContent=f;outputPath.classList.add('has');btnOpenFolder.disabled=false;updateBtn1();}
 });
-
 btnOpenFolder.addEventListener('click',()=>{const t=state1.lastDir||state1.outputDir;if(t)window.api.openFolderInExplorer(t);});
-
 btnExtract.addEventListener('click',async()=>{
   if(state1.running||!state1.outputDir||!state1.files.length)return;
   state1.running=true;state1.files.forEach(f=>{f.status='idle';f.imageCount=0;f.error='';});renderFiles();
@@ -358,8 +357,8 @@ btnExtract.addEventListener('click',async()=>{
   state1.lastDir=state1.outputDir;updateBtn1();renderFiles();
 });
 
-// ── Tab 2: 화질 리샘플링 ──
-let resamplePath=null;
+// ─ Tab2: 화질 리샘플링 ─
+let resamplePath=null, resampleMeta=null;
 const dz2=document.getElementById('dz2');
 const compareWrap=document.getElementById('compareWrap');
 const imgOrig=document.getElementById('imgOrig');
@@ -371,10 +370,10 @@ const scaleVal=document.getElementById('scaleVal');
 const resampleInfo=document.getElementById('resampleInfo');
 const resampleControls=document.getElementById('resampleControls');
 
-setupDrop(dz2, paths=>loadResampleImage(paths[0]));
+setupDrop(dz2,paths=>loadResampleImage(paths[0]));
 dz2.addEventListener('click',async()=>{
   const p=await window.api.openImageFile();
-  if(p) loadResampleImage(p);
+  if(p)loadResampleImage(p);
 });
 
 async function loadResampleImage(p){
@@ -382,39 +381,39 @@ async function loadResampleImage(p){
   if(!['png','jpg','jpeg','webp','bmp','tiff','gif'].includes(ext))return;
   resamplePath=p;
   const res=await window.api.resamplePreview({filePath:p});
-  // 원본: 오른쪽
-  imgOrig.src='data:image/png;base64,'+res.base64;
-  // 업스케일 미리보기: 같은 이미지지만 image-rendering으로 픽셀 보간 없이 표시해서 원본과 차이 시각화
-  imgProc.src='data:image/png;base64,'+res.base64;
+  resampleMeta=res;
+  // 두 img 모두 원본 이미지 (object-fit:contain으로 비율 유지한 채 채우기)
+  const dataUrl='data:image/png;base64,'+res.base64;
+  imgOrig.src=dataUrl;
+  imgProc.src=dataUrl;
+  // 업스케일 쪽은 픽셀 보간 없이 듷보이게
   imgProc.style.imageRendering='pixelated';
   imgOrig.style.imageRendering='auto';
   compareWrap.classList.add('has-img');
   resampleControls.style.display='flex';
-  updateResampleInfo(res);
-  // 핸들 초기 위치 50%
+  dz2.style.display='none';
+  updateResampleInfo();
   setComparePos(50);
 }
 
-function updateResampleInfo(res){
+function updateResampleInfo(){
+  if(!resampleMeta)return;
   const scale=parseFloat(scaleSlider.value);
-  const nw=Math.round(res.width*scale), nh=Math.round(res.height*scale);
-  resampleInfo.textContent=`원본: ${res.width}×${res.height}px  →  업스케일: ${nw}×${nh}px (${scale}×)  ·  ${(res.size/1024).toFixed(0)} KB`;
+  const nw=Math.round(resampleMeta.width*scale),nh=Math.round(resampleMeta.height*scale);
+  resampleInfo.textContent=`원본: ${resampleMeta.width}×${resampleMeta.height}px  →  업스케일: ${nw}×${nh}px (${scale}×)  ·  ${(resampleMeta.size/1024).toFixed(0)} KB`;
 }
 
 scaleSlider.addEventListener('input',()=>{
   scaleVal.textContent=scaleSlider.value+'×';
-  if(resamplePath) window.api.resamplePreview({filePath:resamplePath}).then(updateResampleInfo);
+  updateResampleInfo();
 });
 
 document.getElementById('btnResampleSave').addEventListener('click',async()=>{
   if(!resamplePath)return;
   const saved=await window.api.resampleSave({filePath:resamplePath,scale:parseFloat(scaleSlider.value)});
-  if(saved){
-    resampleInfo.textContent='✓ 저장 완료: '+saved;
-  }
+  if(saved)resampleInfo.textContent='✓ 저장 완료: '+saved;
 });
 
-// Compare slider — handle 드래그
 let isDragging=false;
 compareHandle.addEventListener('mousedown',e=>{isDragging=true;e.preventDefault();});
 window.addEventListener('mouseup',()=>isDragging=false);
@@ -429,12 +428,12 @@ function setComparePos(pct){
   const p=pct.toFixed(1);
   compareDivider.style.left=p+'%';
   compareHandle.style.left=p+'%';
-  // 왼쪽(업스케일): 0 ~ pct%, 오른쪽(원본): pct% ~ 100%
+  // 왼쪽 = 업스케일(processed), 오른쪽 = 원본(orig)
   imgProc.style.clipPath=`inset(0 ${(100-pct).toFixed(1)}% 0 0)`;
   imgOrig.style.clipPath=`inset(0 0 0 ${p}%)`;
 }
 
-// ── Tab 3: PC에서 찾기 ──
+// ─ Tab3: PC에서 찾기 ─
 let pcQueryPath=null,pcScanDir=null;
 const dz4=document.getElementById('dz4');
 const pcQueryThumb=document.getElementById('pcQueryThumb');
@@ -444,13 +443,8 @@ const pcFolderPath=document.getElementById('pcFolderPath');
 const pcProgress=document.getElementById('pcProgress');
 const pcResults=document.getElementById('pcResults');
 const btnStartScan=document.getElementById('btnStartScan');
-
 setupDrop(dz4,paths=>setPcQuery(paths.find(x=>['png','jpg','jpeg','webp','bmp','gif','tiff'].includes(x.split('.').pop().toLowerCase()))));
-dz4.addEventListener('click',async()=>{
-  const p=await window.api.openImageFile();
-  if(p) setPcQuery(p);
-});
-
+dz4.addEventListener('click',async()=>{const p=await window.api.openImageFile();if(p)setPcQuery(p);});
 function setPcQuery(p){
   if(!p)return;
   pcQueryPath=p;
@@ -462,14 +456,11 @@ function setPcQuery(p){
   });
   updateScanBtn();
 }
-
 document.getElementById('btnScanFolder').addEventListener('click',async()=>{
   const f=await window.api.openScanFolder();
   if(f){pcScanDir=f;pcFolderPath.textContent=f;pcFolderPath.classList.add('has');updateScanBtn();}
 });
-
 function updateScanBtn(){btnStartScan.disabled=!pcQueryPath||!pcScanDir;}
-
 btnStartScan.addEventListener('click',async()=>{
   btnStartScan.disabled=true;
   pcResults.innerHTML='';
@@ -481,7 +472,7 @@ btnStartScan.addEventListener('click',async()=>{
   const results=await window.api.phashScan({queryPath:pcQueryPath,scanDir:pcScanDir});
   pcProgress.classList.remove('on');
   btnStartScan.disabled=false;
-  if(!results.length){pcResults.innerHTML='<div class="pc-empty">유사한 이미지를 찾지 못했습니다 (유사도 75% 미만)</div>';return;}
+  if(!results.length){pcResults.innerHTML='<div class="pc-empty">유사한 이미지를 찾지 못했습니다 (유사도 65% 미만)</div>';return;}
   pcResults.innerHTML=results.map(r=>`
     <div class="pc-result-item" data-path="${r.filePath}" title="${r.filePath}">
       <img class="pc-result-thumb" src="data:image/png;base64,${r.preview}">
@@ -494,7 +485,7 @@ btnStartScan.addEventListener('click',async()=>{
   });
 });
 
-// ── Tab 4: 웹에서 찾기 ──
+// ─ Tab4: 웹에서 찾기 ─
 const gWebview=document.getElementById('gWebview');
 const webviewUrl=document.getElementById('webviewUrl');
 gWebview.addEventListener('did-navigate',e=>{webviewUrl.textContent=e.url;});
@@ -502,7 +493,7 @@ gWebview.addEventListener('did-navigate-in-page',e=>{webviewUrl.textContent=e.ur
 document.getElementById('btnReloadLens').onclick=()=>gWebview.reload();
 gWebview.addEventListener('new-window',e=>window.api.openExternal(e.url));
 
-// ── Helpers ──
+// ─ Helpers ─
 function setupDrop(el,cb){
   el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('over');});
   el.addEventListener('dragleave',()=>el.classList.remove('over'));
