@@ -18,7 +18,6 @@
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;user-select:none;overflow:hidden}
 .app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 
-/* Titlebar */
 .titlebar{display:flex;align-items:center;height:32px;background:var(--sidebar);border-bottom:1px solid var(--border);flex-shrink:0;-webkit-app-region:drag;padding-left:12px}
 .tb-icon{width:16px;height:16px;background:var(--brand);border-radius:50%;flex-shrink:0;margin-right:8px;pointer-events:none}
 .tb-name{font-size:13px;font-weight:700;color:var(--white);pointer-events:none}
@@ -30,18 +29,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .wc.x:hover{background:#c42b1c;color:var(--white)}
 .wc svg{width:10px;height:10px}
 
-/* Tab bar */
 .tabbar{display:flex;background:var(--sidebar);border-bottom:1px solid var(--border);flex-shrink:0;padding:0 8px;-webkit-app-region:no-drag}
 .tab{padding:10px 16px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
 .tab:hover{color:var(--text)}
 .tab.active{color:var(--white);border-bottom-color:var(--brand)}
 
-/* Panels */
 .panels{flex:1;overflow:hidden;display:flex;flex-direction:column;-webkit-app-region:no-drag}
 .panel{display:none;flex:1;flex-direction:column;padding:16px;gap:12px;overflow:hidden;min-height:0}
 .panel.active{display:flex}
 
-/* Common */
 .drop-zone{border:2px dashed var(--brand-b);border-radius:var(--r-lg);padding:24px 20px;text-align:center;cursor:pointer;background:var(--brand-dim);transition:all .15s;flex-shrink:0}
 .drop-zone:hover,.drop-zone.over{border-color:var(--brand);background:rgba(88,101,242,0.2)}
 .dz-icon{font-size:26px;margin-bottom:6px}
@@ -66,7 +62,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .btn-icon:hover:not(:disabled){background:#4e5058;color:var(--text)}
 .btn-icon:disabled{opacity:.4;cursor:not-allowed}
 
-/* File list */
 .file-list-wrap{flex:1;min-height:0;display:flex;flex-direction:column;gap:6px;overflow:hidden}
 .file-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px;min-height:0}
 .file-list::-webkit-scrollbar{width:4px}
@@ -96,41 +91,67 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 @keyframes spin{to{transform:rotate(360deg)}}
 .spinner{display:inline-block;width:10px;height:10px;border:1.5px solid rgba(240,178,50,.3);border-top-color:var(--yellow);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:4px}
 
-/* ── Tab2: Resample ── */
-#resampleArea{flex:1;display:flex;flex-direction:column;gap:12px;min-height:0;overflow:hidden}
+/* Tab2: Resample */
 .resample-controls{display:flex;align-items:center;gap:12px;flex-shrink:0;flex-wrap:wrap}
 .resample-controls label{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px}
 .resample-controls input[type=range]{accent-color:var(--brand);width:140px}
-.compare-wrap{flex:1;position:relative;overflow:hidden;border-radius:var(--r-lg);background:#1a1a1a;min-height:0;display:none}
+.resample-info{font-size:12px;color:var(--muted);flex-shrink:0;text-align:center}
+/* 비교 뷰: 두 이미지 동일 크기로 겹치고 clip-path로 분할 */
+.compare-wrap{
+  flex:1;position:relative;overflow:hidden;border-radius:var(--r-lg);
+  background:#111;min-height:0;display:none;
+}
 .compare-wrap.has-img{display:block}
-.compare-img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain}
-.compare-img.processed{clip-path:inset(0 50% 0 0)}
-.compare-slider{position:absolute;top:0;left:50%;transform:translateX(-50%);width:3px;height:100%;background:var(--white);cursor:ew-resize;z-index:10}
-.compare-slider::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:28px;height:28px;background:var(--white);border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.5)}
-.compare-label{position:absolute;top:12px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:10px;background:rgba(0,0,0,.5);color:var(--white);pointer-events:none}
+.compare-canvas-wrap{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+}
+.compare-img{
+  position:absolute;
+  max-width:100%;max-height:100%;
+  width:auto;height:auto;
+  object-fit:contain;
+  top:50%;left:50%;transform:translate(-50%,-50%);
+}
+/* processed는 왼쪽 절반만 보임 (clip-path로 제어) */
+.compare-img.processed{
+  clip-path:inset(0 50% 0 0);
+}
+.compare-divider{
+  position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:2px;height:100%;background:var(--white);z-index:10;
+  pointer-events:none;
+}
+.compare-handle{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:32px;height:32px;border-radius:50%;
+  background:var(--white);box-shadow:0 2px 8px rgba(0,0,0,.5);
+  cursor:ew-resize;z-index:11;
+  display:flex;align-items:center;justify-content:center;
+}
+.compare-handle::after{content:'◀ ▶';font-size:8px;color:#333;letter-spacing:-1px}
+.compare-label{
+  position:absolute;top:12px;font-size:11px;font-weight:700;
+  padding:3px 8px;border-radius:10px;background:rgba(0,0,0,.6);
+  color:var(--white);pointer-events:none;z-index:12;
+}
 .label-orig{left:12px}
 .label-proc{right:12px}
-.resample-info{font-size:12px;color:var(--muted);flex-shrink:0;text-align:center}
 
-/* ── Tab3: Web Search ── */
-#webSearchArea{flex:1;display:flex;flex-direction:column;gap:12px;min-height:0}
-.search-drop{border:2px dashed var(--brand-b);border-radius:var(--r-lg);padding:32px 20px;text-align:center;cursor:pointer;background:var(--brand-dim);transition:all .15s;flex-shrink:0}
-.search-drop:hover,.search-drop.over{border-color:var(--brand);background:rgba(88,101,242,.2)}
-.webview-wrap{flex:1;border-radius:var(--r-lg);overflow:hidden;background:#1a1a1a;display:none;min-height:0}
-.webview-wrap.on{display:flex;flex-direction:column}
-.webview-toolbar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--sidebar);border-bottom:1px solid var(--border);flex-shrink:0}
+/* Tab3: Web Search (구글 렌즈 직접 표시) */
+.webview-wrap{flex:1;border-radius:var(--r-lg);overflow:hidden;background:#1a1a1a;display:flex;flex-direction:column;min-height:0}
+.webview-toolbar{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--sidebar);border-bottom:1px solid var(--border);flex-shrink:0}
+.webview-hint{font-size:11px;color:var(--muted);padding:3px 8px;background:var(--elevated);border-radius:var(--r)}
 .webview-url{flex:1;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.webview-hint{font-size:11px;color:var(--muted);padding:4px 8px;background:var(--elevated);border-radius:var(--r)}
 webview{flex:1;width:100%}
 
-/* ── Tab4: PC Search ── */
-#pcSearchArea{flex:1;display:flex;flex-direction:column;gap:12px;min-height:0;overflow:hidden}
+/* Tab4: PC Search */
 .pc-top{display:flex;gap:10px;flex-shrink:0}
-.pc-query-zone{flex:1;border:2px dashed var(--brand-b);border-radius:var(--r-lg);padding:16px;text-align:center;cursor:pointer;background:var(--brand-dim);transition:all .15s;min-height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.pc-query-zone{flex:1;border:2px dashed var(--brand-b);border-radius:var(--r-lg);padding:16px;text-align:center;cursor:pointer;background:var(--brand-dim);transition:all .15s;min-height:90px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
 .pc-query-zone:hover,.pc-query-zone.over{border-color:var(--brand);background:rgba(88,101,242,.2)}
-.pc-query-thumb{width:60px;height:60px;object-fit:cover;border-radius:var(--r);display:none}
-.pc-folder-box{display:flex;flex-direction:column;gap:6px;justify-content:center;flex-shrink:0}
-.pc-folder-path{font-size:11px;color:var(--muted);padding:4px 8px;background:var(--input);border-radius:var(--r);max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc-query-thumb{width:56px;height:56px;object-fit:cover;border-radius:var(--r);display:none}
+.pc-folder-box{display:flex;flex-direction:column;gap:6px;justify-content:center;flex-shrink:0;min-width:180px}
+.pc-folder-path{font-size:11px;color:var(--muted);padding:4px 8px;background:var(--input);border-radius:var(--r);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pc-folder-path.has{color:var(--text)}
 .pc-scan-progress{font-size:12px;color:var(--muted);text-align:center;flex-shrink:0;display:none}
 .pc-scan-progress.on{display:block}
@@ -140,14 +161,13 @@ webview{flex:1;width:100%}
 .pc-result-item{background:var(--elevated);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:all .15s;position:relative}
 .pc-result-item:hover{transform:scale(1.03);box-shadow:0 4px 12px rgba(0,0,0,.4)}
 .pc-result-thumb{width:100%;aspect-ratio:1;object-fit:cover;display:block}
-.pc-result-badge{position:absolute;bottom:4px;right:4px;font-size:10px;font-weight:700;padding:2px 6px;border-radius:8px;background:rgba(0,0,0,.7);color:var(--white)}
+.pc-result-badge{position:absolute;bottom:4px;right:4px;font-size:10px;font-weight:700;padding:2px 6px;border-radius:8px;background:rgba(0,0,0,.75);color:var(--white)}
+.pc-result-res{position:absolute;bottom:4px;left:4px;font-size:9px;padding:2px 5px;border-radius:6px;background:rgba(0,0,0,.6);color:rgba(255,255,255,.7)}
 .pc-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:13px;grid-column:1/-1}
 </style>
 </head>
 <body>
 <div class="app">
-
-  <!-- Titlebar -->
   <div class="titlebar">
     <div class="tb-icon"></div>
     <span class="tb-name">ImgExtractor</span>
@@ -160,17 +180,17 @@ webview{flex:1;width:100%}
     </div>
   </div>
 
-  <!-- Tab bar -->
+  <!-- 탭 순서: 이미지추출 / 화질리샘플링 / PC에서찾기 / 웹에서찾기 -->
   <div class="tabbar">
     <div class="tab active" data-tab="extract">🖼 이미지 추출</div>
     <div class="tab" data-tab="resample">✨ 화질 리샘플링</div>
-    <div class="tab" data-tab="websearch">🔍 웹에서 찾기</div>
     <div class="tab" data-tab="pcsearch">📂 PC에서 찾기</div>
+    <div class="tab" data-tab="websearch">🔍 웹에서 찾기</div>
   </div>
 
   <div class="panels">
 
-    <!-- ── Tab 1: 이미지 추출 ── -->
+    <!-- Tab 1: 이미지 추출 -->
     <div class="panel active" id="panel-extract">
       <div class="drop-zone" id="dz1">
         <div class="dz-icon">📄</div>
@@ -195,69 +215,60 @@ webview{flex:1;width:100%}
       </div>
     </div>
 
-    <!-- ── Tab 2: 화질 리샘플링 ── -->
+    <!-- Tab 2: 화질 리샘플링 -->
     <div class="panel" id="panel-resample">
       <div class="drop-zone" id="dz2">
         <div class="dz-icon">🖼</div>
         <div class="dz-label">이미지를 드래그하거나 클릭해서 추가</div>
         <div class="dz-sub">PNG · JPG · WEBP · BMP · TIFF</div>
       </div>
-      <div id="resampleArea">
-        <div class="resample-controls" id="resampleControls" style="display:none">
-          <label>배율 <input type="range" id="scaleSlider" min="1" max="4" step="0.5" value="2"> <span id="scaleVal">2×</span></label>
-          <button class="btn-sm" id="btnResampleSave">💾 저장</button>
-        </div>
-        <div class="resample-info" id="resampleInfo"></div>
-        <div class="compare-wrap" id="compareWrap">
-          <img class="compare-img" id="imgOrig" alt="원본">
-          <img class="compare-img processed" id="imgProc" alt="처리됨">
-          <div class="compare-slider" id="compareSlider"></div>
-          <span class="compare-label label-orig">원본</span>
-          <span class="compare-label label-proc">업스케일</span>
-        </div>
+      <div class="resample-controls" id="resampleControls" style="display:none">
+        <label>배율 <input type="range" id="scaleSlider" min="1" max="4" step="0.5" value="2"> <span id="scaleVal">2×</span></label>
+        <button class="btn-sm" id="btnResampleSave">💾 저장</button>
+      </div>
+      <div class="resample-info" id="resampleInfo"></div>
+      <div class="compare-wrap" id="compareWrap">
+        <!-- processed가 왼쪽(업스케일), orig가 오른쪽(원본) -->
+        <img class="compare-img processed" id="imgProc" alt="업스케일">
+        <img class="compare-img" id="imgOrig" alt="원본">
+        <div class="compare-divider" id="compareDivider"></div>
+        <div class="compare-handle" id="compareHandle"></div>
+        <span class="compare-label label-orig" style="right:12px;left:auto">원본</span>
+        <span class="compare-label label-proc" style="left:12px">업스케일</span>
       </div>
     </div>
 
-    <!-- ── Tab 3: 웹에서 찾기 ── -->
-    <div class="panel" id="panel-websearch">
-      <div id="webSearchArea">
-        <div class="search-drop" id="dz3">
-          <div class="dz-icon">🔍</div>
-          <div class="dz-label">이미지를 드래그해서 구글 렌즈로 검색</div>
-          <div class="dz-sub">또는 클릭해서 파일 선택 · 인터넷 연결 필요</div>
-        </div>
-        <div class="webview-wrap" id="webviewWrap">
-          <div class="webview-toolbar">
-            <span class="webview-hint">구글 렌즈</span>
-            <span class="webview-url" id="webviewUrl"></span>
-            <button class="btn-sm" id="btnNewSearch">새 검색</button>
-          </div>
-          <webview id="gWebview" src="about:blank" partition="persist:googlelens"></webview>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Tab 4: PC에서 찾기 ── -->
+    <!-- Tab 3: PC에서 찾기 -->
     <div class="panel" id="panel-pcsearch">
-      <div id="pcSearchArea">
-        <div class="pc-top">
-          <div class="pc-query-zone" id="dz4">
-            <img class="pc-query-thumb" id="pcQueryThumb">
-            <div class="dz-icon" id="dz4Icon">📷</div>
-            <div style="font-size:13px;font-weight:600;color:var(--white)" id="dz4Label">기준 이미지 드롭</div>
-            <div style="font-size:12px;color:var(--muted)">유사한 이미지를 PC에서 찾습니다</div>
-          </div>
-          <div class="pc-folder-box">
-            <div class="section-label">검색 폴더</div>
-            <div class="pc-folder-path" id="pcFolderPath">폴더를 선택하세요</div>
-            <button class="btn-sm" id="btnScanFolder">폴더 선택</button>
-            <button class="btn-primary" id="btnStartScan" disabled style="margin-top:4px">검색 시작</button>
-          </div>
+      <div class="pc-top">
+        <div class="pc-query-zone" id="dz4">
+          <img class="pc-query-thumb" id="pcQueryThumb">
+          <div class="dz-icon" id="dz4Icon">📷</div>
+          <div style="font-size:13px;font-weight:600;color:var(--white)" id="dz4Label">기준 이미지 드롭</div>
+          <div style="font-size:11px;color:var(--muted)">저화질 → 고화질 버전 찾기</div>
         </div>
-        <div class="pc-scan-progress" id="pcProgress"></div>
-        <div class="pc-results" id="pcResults">
-          <div class="pc-empty">이미지와 폴더를 선택한 후 검색을 시작하세요</div>
+        <div class="pc-folder-box">
+          <div class="section-label">검색 폴더</div>
+          <div class="pc-folder-path" id="pcFolderPath">폴더를 선택하세요</div>
+          <button class="btn-sm" id="btnScanFolder">폴더 선택</button>
+          <button class="btn-primary" id="btnStartScan" disabled style="margin-top:4px">검색 시작</button>
         </div>
+      </div>
+      <div class="pc-scan-progress" id="pcProgress"></div>
+      <div class="pc-results" id="pcResults">
+        <div class="pc-empty">이미지와 폴더를 선택한 후 검색을 시작하세요</div>
+      </div>
+    </div>
+
+    <!-- Tab 4: 웹에서 찾기 (구글 렌즈 바로 표시) -->
+    <div class="panel" id="panel-websearch">
+      <div class="webview-wrap">
+        <div class="webview-toolbar">
+          <span class="webview-hint">🔍 구글 렌즈</span>
+          <span class="webview-url" id="webviewUrl">lens.google.com</span>
+          <button class="btn-sm" id="btnReloadLens">새로고침</button>
+        </div>
+        <webview id="gWebview" src="https://lens.google.com/?hl=ko" partition="persist:googlelens"></webview>
       </div>
     </div>
 
@@ -265,48 +276,46 @@ webview{flex:1;width:100%}
 </div>
 
 <script>
-// ── Tab switching ──
+// Tab switching
 const tabs = document.querySelectorAll('.tab');
 const panels = document.querySelectorAll('.panel');
 tabs.forEach(t => t.addEventListener('click', () => {
-  tabs.forEach(x => x.classList.remove('active'));
-  panels.forEach(x => x.classList.remove('active'));
+  tabs.forEach(x=>x.classList.remove('active'));
+  panels.forEach(x=>x.classList.remove('active'));
   t.classList.add('active');
-  document.getElementById('panel-' + t.dataset.tab).classList.add('active');
+  document.getElementById('panel-'+t.dataset.tab).classList.add('active');
 }));
 
-// Window controls
 document.getElementById('btnMin').onclick = () => window.api.windowMinimize();
 document.getElementById('btnMax').onclick = () => window.api.windowMaximize();
 document.getElementById('btnClose').onclick = () => window.api.windowClose();
 
-// ── Tab 1: 이미지 추출 ──────────────────────────────────────────────
-const state1 = { files: [], outputDir: null, running: false, lastDir: null };
-const dz1 = document.getElementById('dz1');
-const fileList = document.getElementById('fileList');
-const outputPath = document.getElementById('outputPath');
-const progressWrap = document.getElementById('progressWrap');
-const progressBar = document.getElementById('progressBar');
-const btnExtract = document.getElementById('btnExtract');
-const btnOpenFolder = document.getElementById('btnOpenFolder');
+// ── Tab 1: 이미지 추출 ──
+const state1={files:[],outputDir:null,running:false,lastDir:null};
+const dz1=document.getElementById('dz1');
+const fileList=document.getElementById('fileList');
+const outputPath=document.getElementById('outputPath');
+const progressWrap=document.getElementById('progressWrap');
+const progressBar=document.getElementById('progressBar');
+const btnExtract=document.getElementById('btnExtract');
+const btnOpenFolder=document.getElementById('btnOpenFolder');
 
 setupDrop(dz1, addFiles1);
-dz1.addEventListener('click', async () => { const p = await window.api.openFile(); if(p.length) addFiles1(p); });
+dz1.addEventListener('click', async()=>{const p=await window.api.openFile();if(p.length)addFiles1(p);});
 
-function addFiles1(paths) {
-  const ok = ['pptx','ppt','docx','doc','pdf','hwp','hwpx'];
-  for (const p of paths) {
-    const name = p.split(/[\\\/]/).pop();
-    const ext = name.split('.').pop().toLowerCase();
-    if (!ok.includes(ext) || state1.files.find(f=>f.path===p)) continue;
+function addFiles1(paths){
+  const ok=['pptx','ppt','docx','doc','pdf','hwp','hwpx'];
+  for(const p of paths){
+    const name=p.split(/[\\\/]/).pop(), ext=name.split('.').pop().toLowerCase();
+    if(!ok.includes(ext)||state1.files.find(f=>f.path===p))continue;
     state1.files.push({path:p,name,ext,status:'idle',imageCount:0,error:''});
   }
-  renderFiles(); updateBtn1();
+  renderFiles();updateBtn1();
 }
 
-function renderFiles() {
-  if (!state1.files.length) { fileList.innerHTML='<div class="empty-state">추가된 파일이 없습니다</div>'; return; }
-  fileList.innerHTML = state1.files.map((f,i)=>`
+function renderFiles(){
+  if(!state1.files.length){fileList.innerHTML='<div class="empty-state">추가된 파일이 없습니다</div>';return;}
+  fileList.innerHTML=state1.files.map((f,i)=>`
     <div class="file-item status-${f.status}">
       <div class="file-icon fi-${f.ext}">${f.ext.toUpperCase()}</div>
       <div class="file-info"><div class="file-name" title="${f.path}">${f.name}</div><div class="file-sub">${f.path}</div></div>
@@ -316,7 +325,7 @@ function renderFiles() {
   fileList.querySelectorAll('.file-remove').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();state1.files.splice(+b.dataset.i,1);renderFiles();updateBtn1();}));
 }
 
-function badgeHtml(f) {
+function badgeHtml(f){
   if(f.status==='idle') return '<span class="file-badge badge-idle">대기</span>';
   if(f.status==='processing') return `<span class="file-badge badge-processing"><span class="spinner"></span>${f.imageCount}장</span>`;
   if(f.status==='done') return `<span class="file-badge badge-done">✓ ${f.imageCount}장</span>`;
@@ -324,232 +333,180 @@ function badgeHtml(f) {
   return '';
 }
 
-function updateBtn1() { btnExtract.disabled = state1.running || !state1.files.length || !state1.outputDir; }
+function updateBtn1(){btnExtract.disabled=state1.running||!state1.files.length||!state1.outputDir;}
 
-document.getElementById('btnSelectFolder').addEventListener('click', async () => {
-  const f = await window.api.openFolder();
-  if (f) { state1.outputDir=f; outputPath.textContent=f; outputPath.classList.add('has'); btnOpenFolder.disabled=false; updateBtn1(); }
+document.getElementById('btnSelectFolder').addEventListener('click',async()=>{
+  const f=await window.api.openFolder();
+  if(f){state1.outputDir=f;outputPath.textContent=f;outputPath.classList.add('has');btnOpenFolder.disabled=false;updateBtn1();}
 });
 
-btnOpenFolder.addEventListener('click', () => { const t=state1.lastDir||state1.outputDir; if(t) window.api.openFolderInExplorer(t); });
+btnOpenFolder.addEventListener('click',()=>{const t=state1.lastDir||state1.outputDir;if(t)window.api.openFolderInExplorer(t);});
 
-btnExtract.addEventListener('click', async () => {
-  if (state1.running||!state1.outputDir||!state1.files.length) return;
-  state1.running=true; state1.files.forEach(f=>{f.status='idle';f.imageCount=0;f.error='';}); renderFiles();
-  btnExtract.disabled=true; btnExtract.textContent='추출 중...'; progressWrap.classList.add('on'); progressBar.style.width='0%';
+btnExtract.addEventListener('click',async()=>{
+  if(state1.running||!state1.outputDir||!state1.files.length)return;
+  state1.running=true;state1.files.forEach(f=>{f.status='idle';f.imageCount=0;f.error='';});renderFiles();
+  btnExtract.disabled=true;btnExtract.textContent='추출 중...';progressWrap.classList.add('on');progressBar.style.width='0%';
   window.api.removeProgressListener();
   window.api.onProgress(({fileIndex,fileTotal,status,imageCount,error})=>{
-    const f=state1.files[fileIndex]; if(!f) return;
-    f.status=status; f.imageCount=imageCount||0; if(error) f.error=error;
+    const f=state1.files[fileIndex];if(!f)return;
+    f.status=status;f.imageCount=imageCount||0;if(error)f.error=error;
     progressBar.style.width=((fileIndex+(status==='done'||status==='error'?1:.5))/fileTotal*100)+'%';
     renderFiles();
   });
   await window.api.startExtract({filePaths:state1.files.map(f=>f.path),outputDir:state1.outputDir});
-  state1.running=false; progressBar.style.width='100%'; btnExtract.textContent='추출 시작';
-  state1.lastDir=state1.outputDir; updateBtn1(); renderFiles();
+  state1.running=false;progressBar.style.width='100%';btnExtract.textContent='추출 시작';
+  state1.lastDir=state1.outputDir;updateBtn1();renderFiles();
 });
 
-// ── Tab 2: 화질 리샘플링 ────────────────────────────────────────────
-let resamplePath = null;
-let resampleOrigB64 = null;
-let resampleProcB64 = null;
-let isResampleProcessing = false;
+// ── Tab 2: 화질 리샘플링 ──
+let resamplePath=null;
+const dz2=document.getElementById('dz2');
+const compareWrap=document.getElementById('compareWrap');
+const imgOrig=document.getElementById('imgOrig');
+const imgProc=document.getElementById('imgProc');
+const compareDivider=document.getElementById('compareDivider');
+const compareHandle=document.getElementById('compareHandle');
+const scaleSlider=document.getElementById('scaleSlider');
+const scaleVal=document.getElementById('scaleVal');
+const resampleInfo=document.getElementById('resampleInfo');
+const resampleControls=document.getElementById('resampleControls');
 
-const dz2 = document.getElementById('dz2');
-const compareWrap = document.getElementById('compareWrap');
-const imgOrig = document.getElementById('imgOrig');
-const imgProc = document.getElementById('imgProc');
-const slider = document.getElementById('compareSlider');
-const scaleSlider = document.getElementById('scaleSlider');
-const scaleVal = document.getElementById('scaleVal');
-const resampleInfo = document.getElementById('resampleInfo');
-const resampleControls = document.getElementById('resampleControls');
-
-setupDrop(dz2, paths => loadResampleImage(paths[0]));
-dz2.addEventListener('click', async () => {
-  const { canceled, filePaths } = await new Promise(r => window.api.openFile().then(r));
-  // openFile 재사용하면 문서 필터가 걸리므로 그냥 드롭 유도
+setupDrop(dz2, paths=>loadResampleImage(paths[0]));
+dz2.addEventListener('click',async()=>{
+  const p=await window.api.openImageFile();
+  if(p) loadResampleImage(p);
 });
 
-async function loadResampleImage(p) {
-  const imageExts = ['png','jpg','jpeg','webp','bmp','tiff','gif'];
-  const ext = p.split('.').pop().toLowerCase();
-  if (!imageExts.includes(ext)) return;
-  resamplePath = p;
-  const res = await window.api.resamplePreview({ filePath: p });
-  resampleOrigB64 = res.base64;
-  imgOrig.src = 'data:image/png;base64,' + res.base64;
-  await applyResample();
+async function loadResampleImage(p){
+  const ext=p.split('.').pop().toLowerCase();
+  if(!['png','jpg','jpeg','webp','bmp','tiff','gif'].includes(ext))return;
+  resamplePath=p;
+  const res=await window.api.resamplePreview({filePath:p});
+  // 원본: 오른쪽
+  imgOrig.src='data:image/png;base64,'+res.base64;
+  // 업스케일 미리보기: 같은 이미지지만 image-rendering으로 픽셀 보간 없이 표시해서 원본과 차이 시각화
+  imgProc.src='data:image/png;base64,'+res.base64;
+  imgProc.style.imageRendering='pixelated';
+  imgOrig.style.imageRendering='auto';
   compareWrap.classList.add('has-img');
-  resampleControls.style.display = 'flex';
-  resampleInfo.textContent = `원본: ${res.width} × ${res.height}px · ${(res.size/1024).toFixed(0)} KB`;
+  resampleControls.style.display='flex';
+  updateResampleInfo(res);
+  // 핸들 초기 위치 50%
+  setComparePos(50);
 }
 
-async function applyResample() {
-  if (!resamplePath || isResampleProcessing) return;
-  isResampleProcessing = true;
-  const scale = parseFloat(scaleSlider.value);
-  scaleVal.textContent = scale + '×';
-  const res = await window.api.resamplePreview({ filePath: resamplePath });
-  const sharp = null; // preview에서 이미 처리된 base64 그대로 사용
-  // 업스케일 버전은 메인에서 처리 — 여기선 미리보기만
-  const meta = res;
-  const newW = Math.round(meta.width * scale);
-  const newH = Math.round(meta.height * scale);
-  resampleInfo.textContent = `원본: ${meta.width}×${meta.height} → 업스케일: ${newW}×${newH} (${scale}×)`;
-  // processed 미리보기: CSS scale로 시뮬레이션
-  imgProc.src = 'data:image/png;base64,' + res.base64;
-  imgProc.style.imageRendering = 'pixelated';
-  imgProc.style.transform = `scale(${scale})`;
-  imgProc.style.transformOrigin = 'top left';
-  isResampleProcessing = false;
+function updateResampleInfo(res){
+  const scale=parseFloat(scaleSlider.value);
+  const nw=Math.round(res.width*scale), nh=Math.round(res.height*scale);
+  resampleInfo.textContent=`원본: ${res.width}×${res.height}px  →  업스케일: ${nw}×${nh}px (${scale}×)  ·  ${(res.size/1024).toFixed(0)} KB`;
 }
 
-scaleSlider.addEventListener('input', applyResample);
-
-document.getElementById('btnResampleSave').addEventListener('click', async () => {
-  if (!resamplePath) return;
-  const scale = parseFloat(scaleSlider.value);
-  const saved = await window.api.resampleSave({ filePath: resamplePath, scale });
-  if (saved) alert('저장 완료: ' + saved);
+scaleSlider.addEventListener('input',()=>{
+  scaleVal.textContent=scaleSlider.value+'×';
+  if(resamplePath) window.api.resamplePreview({filePath:resamplePath}).then(updateResampleInfo);
 });
 
-// Compare slider drag
-let isDragging = false;
-slider.addEventListener('mousedown', () => isDragging = true);
-window.addEventListener('mouseup', () => isDragging = false);
-window.addEventListener('mousemove', e => {
-  if (!isDragging) return;
-  const rect = compareWrap.getBoundingClientRect();
-  const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
-  const pct = (x / rect.width * 100).toFixed(1);
-  slider.style.left = pct + '%';
-  imgProc.style.clipPath = `inset(0 ${100-pct}% 0 0)`;
+document.getElementById('btnResampleSave').addEventListener('click',async()=>{
+  if(!resamplePath)return;
+  const saved=await window.api.resampleSave({filePath:resamplePath,scale:parseFloat(scaleSlider.value)});
+  if(saved){
+    resampleInfo.textContent='✓ 저장 완료: '+saved;
+  }
 });
 
-// ── Tab 3: 웹에서 찾기 ──────────────────────────────────────────────
-const dz3 = document.getElementById('dz3');
-const webviewWrap = document.getElementById('webviewWrap');
-const gWebview = document.getElementById('gWebview');
-const webviewUrl = document.getElementById('webviewUrl');
-
-setupDrop(dz3, async paths => {
-  const p = paths.find(x => ['png','jpg','jpeg','webp','bmp','gif'].includes(x.split('.').pop().toLowerCase()));
-  if (!p) return;
-  await searchWithGoogleLens(p);
+// Compare slider — handle 드래그
+let isDragging=false;
+compareHandle.addEventListener('mousedown',e=>{isDragging=true;e.preventDefault();});
+window.addEventListener('mouseup',()=>isDragging=false);
+window.addEventListener('mousemove',e=>{
+  if(!isDragging)return;
+  const rect=compareWrap.getBoundingClientRect();
+  const pct=Math.max(0,Math.min((e.clientX-rect.left)/rect.width*100,100));
+  setComparePos(pct);
 });
 
-dz3.addEventListener('click', async () => {
-  // 이미지 파일 선택 → 구글 렌즈
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'image/*';
-  input.onchange = async e => {
-    const f = e.target.files[0];
-    if (f && f.path) await searchWithGoogleLens(f.path);
-  };
-  input.click();
-});
-
-async function searchWithGoogleLens(imgPath) {
-  // 이미지를 base64로 읽어서 data URL로 구글 렌즈에 전달
-  const res = await window.api.resamplePreview({ filePath: imgPath });
-  const dataUrl = 'data:image/png;base64,' + res.base64;
-  // 구글 렌즈 업로드 URL로 이동
-  const lensUrl = 'https://lens.google.com/upload?hl=ko';
-  webviewWrap.classList.add('on');
-  webviewUrl.textContent = lensUrl;
-  gWebview.src = lensUrl;
-  // webview 로드 완료 후 파일 자동 처리 불가 → 안내
-  gWebview.addEventListener('did-finish-load', () => {
-    webviewUrl.textContent = gWebview.src;
-  }, { once: false });
+function setComparePos(pct){
+  const p=pct.toFixed(1);
+  compareDivider.style.left=p+'%';
+  compareHandle.style.left=p+'%';
+  // 왼쪽(업스케일): 0 ~ pct%, 오른쪽(원본): pct% ~ 100%
+  imgProc.style.clipPath=`inset(0 ${(100-pct).toFixed(1)}% 0 0)`;
+  imgOrig.style.clipPath=`inset(0 0 0 ${p}%)`;
 }
 
-document.getElementById('btnNewSearch').onclick = () => {
-  webviewWrap.classList.remove('on');
-  gWebview.src = 'about:blank';
-};
+// ── Tab 3: PC에서 찾기 ──
+let pcQueryPath=null,pcScanDir=null;
+const dz4=document.getElementById('dz4');
+const pcQueryThumb=document.getElementById('pcQueryThumb');
+const dz4Icon=document.getElementById('dz4Icon');
+const dz4Label=document.getElementById('dz4Label');
+const pcFolderPath=document.getElementById('pcFolderPath');
+const pcProgress=document.getElementById('pcProgress');
+const pcResults=document.getElementById('pcResults');
+const btnStartScan=document.getElementById('btnStartScan');
 
-gWebview.addEventListener('new-window', e => { window.api.openExternal(e.url); });
-
-// ── Tab 4: PC에서 찾기 ──────────────────────────────────────────────
-let pcQueryPath = null;
-let pcScanDir = null;
-
-const dz4 = document.getElementById('dz4');
-const pcQueryThumb = document.getElementById('pcQueryThumb');
-const dz4Icon = document.getElementById('dz4Icon');
-const dz4Label = document.getElementById('dz4Label');
-const pcFolderPath = document.getElementById('pcFolderPath');
-const pcProgress = document.getElementById('pcProgress');
-const pcResults = document.getElementById('pcResults');
-const btnStartScan = document.getElementById('btnStartScan');
-
-setupDrop(dz4, paths => setPcQuery(paths.find(x => ['png','jpg','jpeg','webp','bmp','gif','tiff'].includes(x.split('.').pop().toLowerCase()))));
-dz4.addEventListener('click', async () => {
-  const input = document.createElement('input');
-  input.type = 'file'; input.accept = 'image/*';
-  input.onchange = e => { if(e.target.files[0]?.path) setPcQuery(e.target.files[0].path); };
-  input.click();
+setupDrop(dz4,paths=>setPcQuery(paths.find(x=>['png','jpg','jpeg','webp','bmp','gif','tiff'].includes(x.split('.').pop().toLowerCase()))));
+dz4.addEventListener('click',async()=>{
+  const p=await window.api.openImageFile();
+  if(p) setPcQuery(p);
 });
 
-function setPcQuery(p) {
-  if (!p) return;
-  pcQueryPath = p;
-  const res = window.api.resamplePreview({ filePath: p }).then(r => {
-    pcQueryThumb.src = 'data:image/png;base64,' + r.base64;
-    pcQueryThumb.style.display = 'block';
-    dz4Icon.style.display = 'none';
-    dz4Label.textContent = p.split(/[\\\/]/).pop();
+function setPcQuery(p){
+  if(!p)return;
+  pcQueryPath=p;
+  window.api.resamplePreview({filePath:p}).then(r=>{
+    pcQueryThumb.src='data:image/png;base64,'+r.base64;
+    pcQueryThumb.style.display='block';
+    dz4Icon.style.display='none';
+    dz4Label.textContent=p.split(/[\\\/]/).pop();
   });
   updateScanBtn();
 }
 
-document.getElementById('btnScanFolder').addEventListener('click', async () => {
-  const f = await window.api.openScanFolder();
-  if (f) { pcScanDir=f; pcFolderPath.textContent=f; pcFolderPath.classList.add('has'); updateScanBtn(); }
+document.getElementById('btnScanFolder').addEventListener('click',async()=>{
+  const f=await window.api.openScanFolder();
+  if(f){pcScanDir=f;pcFolderPath.textContent=f;pcFolderPath.classList.add('has');updateScanBtn();}
 });
 
-function updateScanBtn() { btnStartScan.disabled = !pcQueryPath || !pcScanDir; }
+function updateScanBtn(){btnStartScan.disabled=!pcQueryPath||!pcScanDir;}
 
-btnStartScan.addEventListener('click', async () => {
-  btnStartScan.disabled = true;
-  pcResults.innerHTML = '';
-  pcProgress.textContent = '스캔 준비 중...';
+btnStartScan.addEventListener('click',async()=>{
+  btnStartScan.disabled=true;
+  pcResults.innerHTML='';
+  pcProgress.textContent='스캔 준비 중...';
   pcProgress.classList.add('on');
-
   window.api.removeScanListeners();
-  window.api.onScanTotal(total => { pcProgress.textContent = `이미지 ${total}개 발견, 분석 중...`; });
-  window.api.onScanProgress(({current,total}) => { pcProgress.textContent = `분석 중... ${current} / ${total}`; });
-
-  const results = await window.api.phashScan({ queryPath: pcQueryPath, scanDir: pcScanDir });
-
+  window.api.onScanTotal(total=>{pcProgress.textContent=`이미지 ${total}개 발견, 분석 중...`;});
+  window.api.onScanProgress(({current,total})=>{pcProgress.textContent=`분석 중... ${current} / ${total}`;});
+  const results=await window.api.phashScan({queryPath:pcQueryPath,scanDir:pcScanDir});
   pcProgress.classList.remove('on');
-  btnStartScan.disabled = false;
-
-  if (!results.length) {
-    pcResults.innerHTML = '<div class="pc-empty">유사한 이미지를 찾지 못했습니다</div>';
-    return;
-  }
-
-  pcResults.innerHTML = results.map(r => `
+  btnStartScan.disabled=false;
+  if(!results.length){pcResults.innerHTML='<div class="pc-empty">유사한 이미지를 찾지 못했습니다 (유사도 75% 미만)</div>';return;}
+  pcResults.innerHTML=results.map(r=>`
     <div class="pc-result-item" data-path="${r.filePath}" title="${r.filePath}">
       <img class="pc-result-thumb" src="data:image/png;base64,${r.preview}">
+      <span class="pc-result-res">${r.width}×${r.height}</span>
       <span class="pc-result-badge">${r.similarity}%</span>
     </div>`).join('');
-
-  pcResults.querySelectorAll('.pc-result-item').forEach(el => {
-    el.addEventListener('click', () => window.api.openPath(el.dataset.path));
-    el.addEventListener('dblclick', () => window.api.openFolderInExplorer(el.dataset.path.replace(/[\\\/][^\\\/]+$/, '')));
+  pcResults.querySelectorAll('.pc-result-item').forEach(el=>{
+    el.addEventListener('click',()=>window.api.openPath(el.dataset.path));
+    el.addEventListener('dblclick',()=>window.api.openFolderInExplorer(el.dataset.path.replace(/[\\\/][^\\\/]+$/,'')));
   });
 });
 
-// ── Helpers ──────────────────────────────────────────────────────────
-function setupDrop(el, cb) {
-  el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('over'); });
-  el.addEventListener('dragleave', () => el.classList.remove('over'));
-  el.addEventListener('drop', e => { e.preventDefault(); el.classList.remove('over'); cb(Array.from(e.dataTransfer.files).map(f=>f.path)); });
+// ── Tab 4: 웹에서 찾기 ──
+const gWebview=document.getElementById('gWebview');
+const webviewUrl=document.getElementById('webviewUrl');
+gWebview.addEventListener('did-navigate',e=>{webviewUrl.textContent=e.url;});
+gWebview.addEventListener('did-navigate-in-page',e=>{webviewUrl.textContent=e.url;});
+document.getElementById('btnReloadLens').onclick=()=>gWebview.reload();
+gWebview.addEventListener('new-window',e=>window.api.openExternal(e.url));
+
+// ── Helpers ──
+function setupDrop(el,cb){
+  el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('over');});
+  el.addEventListener('dragleave',()=>el.classList.remove('over'));
+  el.addEventListener('drop',e=>{e.preventDefault();el.classList.remove('over');cb(Array.from(e.dataTransfer.files).map(f=>f.path));});
 }
 </script>
 </body>
