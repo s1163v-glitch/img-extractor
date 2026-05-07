@@ -97,31 +97,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .compare-img.processed{clip-path:inset(0 50% 0 0)}
 .compare-divider{position:absolute;top:0;left:50%;transform:translateX(-50%);width:2px;height:100%;background:rgba(255,255,255,0.9);pointer-events:none;z-index:10}
 .compare-handle{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:34px;height:34px;border-radius:50%;background:var(--white);box-shadow:0 2px 10px rgba(0,0,0,.6);cursor:ew-resize;z-index:11;display:flex;align-items:center;justify-content:center;font-size:10px;color:#333}
-.compare-handle::after{content:'◄ ►';letter-spacing:-1px}
+.compare-handle::after{content:'\u25c4 \u25ba';letter-spacing:-1px}
 .compare-label{position:absolute;top:12px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:10px;background:rgba(0,0,0,.6);color:var(--white);pointer-events:none;z-index:12}
 .label-orig{right:12px}.label-proc{left:12px}
-/* 모델 상태 배너 */
-.model-banner{
-  display:flex;align-items:center;gap:10px;
-  padding:10px 14px;
-  border-radius:var(--r);
-  background:var(--elevated);
-  font-size:12px;
-  flex-shrink:0;
-}
-.model-banner.downloading{background:var(--yellow-dim);color:var(--yellow)}
-.model-banner.ready{background:var(--green-dim);color:var(--green)}
-.model-banner.error{background:var(--red-dim);color:var(--red)}
-.model-banner-bar{
-  flex:1;height:4px;background:rgba(0,0,0,.2);
-  border-radius:2px;overflow:hidden;
-}
-.model-banner-fill{
-  height:100%;background:currentColor;
-  width:0%;transition:width .3s ease;
-  border-radius:2px;
-  opacity:.7;
-}
 /* PC Search */
 .pc-top{display:flex;gap:10px;flex-shrink:0}
 .pc-query-zone{flex:1;border:2px dashed var(--brand-b);border-radius:var(--r-lg);padding:16px;text-align:center;cursor:pointer;background:var(--brand-dim);transition:all .15s;min-height:90px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
@@ -156,7 +134,7 @@ webview{flex:1;width:100%}
     <div class="tb-icon"></div>
     <span class="tb-name">ImgExtractor</span>
     <div class="tb-div"></div>
-    <span class="tb-sub">문서 이미지 추출기</span>
+    <span class="tb-sub">\ub9ac\uc774\ubbf8\uc9c0 \ucd94\ucd9c\uae30</span>
     <div class="tb-controls">
       <button class="wc" id="btnMin"><svg viewBox="0 0 10 1" fill="currentColor"><rect width="10" height="1"/></svg></button>
       <button class="wc" id="btnMax"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1"><rect x=".5" y=".5" width="9" height="9"/></svg></button>
@@ -164,107 +142,87 @@ webview{flex:1;width:100%}
     </div>
   </div>
   <div class="tabbar">
-    <div class="tab active" data-tab="extract">🖼 이미지 추출</div>
-    <div class="tab" data-tab="resample">✨ 화질 리샘플링</div>
-    <div class="tab" data-tab="pcsearch">📂 PC에서 찾기</div>
-    <div class="tab" data-tab="websearch">🔍 웹에서 찾기</div>
+    <div class="tab active" data-tab="extract">\ud83d\uddbc \uc774\ubbf8\uc9c0 \ucd94\ucd9c</div>
+    <div class="tab" data-tab="resample">\u2728 \ud654\uc9c8 \ub9ac\uc0d8\ud50c\ub9c1</div>
+    <div class="tab" data-tab="pcsearch">\ud83d\udcc2 PC\uc5d0\uc11c \ucc3e\uae30</div>
+    <div class="tab" data-tab="websearch">\ud83d\udd0d \uc6f9\uc5d0\uc11c \ucc3e\uae30</div>
   </div>
   <div class="panels">
-
-    <!-- Tab1 -->
     <div class="panel active" id="panel-extract">
       <div class="drop-zone" id="dz1">
-        <div class="dz-icon">📄</div>
-        <div class="dz-label">파일을 드래그하거나 클릭해서 추가</div>
-        <div class="dz-sub">PPTX · DOCX · PDF · HWP · HWPX</div>
+        <div class="dz-icon">\ud83d\udcc4</div>
+        <div class="dz-label">\ud30c\uc77c\uc744 \ub4dc\ub798\uadf8\ud558\uac70\ub098 \ud074\ub9ad\ud574\uc11c \ucd94\uac00</div>
+        <div class="dz-sub">PPTX \u00b7 DOCX \u00b7 PDF \u00b7 HWP \u00b7 HWPX</div>
       </div>
       <div class="file-list-wrap">
-        <div class="section-label">파일 목록</div>
-        <div class="file-list" id="fileList"><div class="empty-state">추가된 파일이 없습니다</div></div>
+        <div class="section-label">\ud30c\uc77c \ubaa9\ub85d</div>
+        <div class="file-list" id="fileList"><div class="empty-state">\ucd94\uac00\ub41c \ud30c\uc77c\uc774 \uc5c6\uc2b5\ub2c8\ub2e4</div></div>
       </div>
       <div class="bottom">
         <div class="progress-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
         <div class="output-row">
-          <span class="out-label">출력</span>
-          <span class="out-path" id="outputPath">폴더를 선택하세요</span>
-          <button class="btn-sm" id="btnSelectFolder">폴더 선택</button>
+          <span class="out-label">\ucd9c\ub825</span>
+          <span class="out-path" id="outputPath">\ud3f4\ub354\ub97c \uc120\ud0dd\ud558\uc138\uc694</span>
+          <button class="btn-sm" id="btnSelectFolder">\ud3f4\ub354 \uc120\ud0dd</button>
         </div>
         <div class="action-row">
-          <button class="btn-primary" id="btnExtract" disabled>추출 시작</button>
-          <button class="btn-icon" id="btnOpenFolder" disabled>📂</button>
+          <button class="btn-primary" id="btnExtract" disabled>\ucd94\ucd9c \uc2dc\uc791</button>
+          <button class="btn-icon" id="btnOpenFolder" disabled>\ud83d\udcc2</button>
         </div>
       </div>
     </div>
-
-    <!-- Tab2 -->
     <div class="panel" id="panel-resample">
       <div class="drop-zone" id="dz2">
-        <div class="dz-icon">🖼</div>
-        <div class="dz-label">이미지를 드래그하거나 클릭해서 추가</div>
-        <div class="dz-sub">PNG · JPG · WEBP · BMP · TIFF</div>
+        <div class="dz-icon">\ud83d\uddbc</div>
+        <div class="dz-label">\uc774\ubbf8\uc9c0\ub97c \ub4dc\ub798\uadf8\ud558\uac70\ub098 \ud074\ub9ad\ud574\uc11c \ucd94\uac00</div>
+        <div class="dz-sub">PNG \u00b7 JPG \u00b7 WEBP \u00b7 BMP \u00b7 TIFF</div>
       </div>
       <div class="resample-controls" id="resampleControls" style="display:none">
-        <label>배율 <input type="range" id="scaleSlider" min="1" max="4" step="0.5" value="2"> <span id="scaleVal">2×</span></label>
-        <button class="btn-sm" id="btnResampleSave">💾 저장</button>
+        <label>\ubc30\uc728 <input type="range" id="scaleSlider" min="1" max="4" step="0.5" value="2"> <span id="scaleVal">2\u00d7</span></label>
+        <button class="btn-sm" id="btnResampleSave">\ud83d\udcbe \uc800\uc7a5</button>
       </div>
       <div class="resample-info" id="resampleInfo"></div>
       <div class="compare-wrap" id="compareWrap">
-        <img class="compare-img processed" id="imgProc" alt="업스케일">
-        <img class="compare-img" id="imgOrig" alt="원본">
+        <img class="compare-img processed" id="imgProc" alt="\uc5c5\uc2a4\ucf00\uc77c">
+        <img class="compare-img" id="imgOrig" alt="\uc6d0\ubcf8">
         <div class="compare-divider" id="compareDivider"></div>
         <div class="compare-handle" id="compareHandle"></div>
-        <span class="compare-label label-proc">업스케일</span>
-        <span class="compare-label label-orig">원본</span>
+        <span class="compare-label label-proc">\uc5c5\uc2a4\ucf00\uc77c</span>
+        <span class="compare-label label-orig">\uc6d0\ubcf8</span>
       </div>
     </div>
-
-    <!-- Tab3: PC에서 찾기 -->
     <div class="panel" id="panel-pcsearch">
-
-      <!-- 모델 상태 배너 -->
-      <div class="model-banner" id="modelBanner">
-        <span id="modelBannerIcon">⏳</span>
-        <span id="modelBannerText">AI 모델 준비 중...</span>
-        <div class="model-banner-bar" id="modelBannerBarWrap" style="display:none">
-          <div class="model-banner-fill" id="modelBannerFill"></div>
-        </div>
-      </div>
-
       <div class="pc-top">
         <div class="pc-query-zone" id="dz4">
           <img class="pc-query-thumb" id="pcQueryThumb">
-          <div class="dz-icon" id="dz4Icon">📷</div>
-          <div style="font-size:13px;font-weight:600;color:var(--white)" id="dz4Label">기준 이미지 드롭</div>
-          <div style="font-size:11px;color:var(--muted)">저화질 → 고화질 버전 찾기</div>
+          <div class="dz-icon" id="dz4Icon">\ud83d\udcf7</div>
+          <div style="font-size:13px;font-weight:600;color:var(--white)" id="dz4Label">\uae30\uc900 \uc774\ubbf8\uc9c0 \ub4dc\ub86d</div>
+          <div style="font-size:11px;color:var(--muted)">\uc800\ud654\uc9c8 \u2192 \uace0\ud654\uc9c8 \ubc84\uc804 \ucc3e\uae30</div>
         </div>
         <div class="pc-folder-box">
-          <div class="section-label">검색 폴더</div>
-          <div class="pc-folder-path" id="pcFolderPath">폴더를 선택하세요</div>
-          <button class="btn-sm" id="btnScanFolder">폴더 선택</button>
-          <button class="btn-primary" id="btnStartScan" disabled style="margin-top:4px">검색 시작</button>
+          <div class="section-label">\uac80\uc0c9 \ud3f4\ub354</div>
+          <div class="pc-folder-path" id="pcFolderPath">\ud3f4\ub354\ub97c \uc120\ud0dd\ud558\uc138\uc694</div>
+          <button class="btn-sm" id="btnScanFolder">\ud3f4\ub354 \uc120\ud0dd</button>
+          <button class="btn-primary" id="btnStartScan" disabled style="margin-top:4px">\uac80\uc0c9 \uc2dc\uc791</button>
         </div>
       </div>
-
       <div class="pc-scan-progress" id="pcProgress"></div>
       <div class="pc-results" id="pcResults">
-        <div class="pc-empty">이미지와 폴더를 선택한 후 검색을 시작하세요</div>
+        <div class="pc-empty">\uc774\ubbf8\uc9c0\uc640 \ud3f4\ub354\ub97c \uc120\ud0dd\ud55c \ud6c4 \uac80\uc0c9\uc744 \uc2dc\uc791\ud558\uc138\uc694</div>
       </div>
     </div>
-
-    <!-- Tab4 -->
     <div class="panel" id="panel-websearch">
       <div class="webview-wrap">
         <div class="webview-toolbar">
-          <span class="webview-hint">🔍 구글 렌즈</span>
+          <span class="webview-hint">\ud83d\udd0d \uad6c\uae00 \ub80c\uc988</span>
           <span class="webview-url" id="webviewUrl">lens.google.com</span>
-          <button class="btn-sm" id="btnReloadLens">새로고침</button>
+          <button class="btn-sm" id="btnReloadLens">\uc0c8\ub85c\uace0\uce68</button>
         </div>
         <webview id="gWebview" src="https://lens.google.com/?hl=ko" partition="persist:googlelens"></webview>
       </div>
     </div>
   </div>
 </div>
-
 <script>
 const tabs=document.querySelectorAll('.tab');
 const panels=document.querySelectorAll('.panel');
@@ -277,8 +235,6 @@ tabs.forEach(t=>t.addEventListener('click',()=>{
 document.getElementById('btnMin').onclick=()=>window.api.windowMinimize();
 document.getElementById('btnMax').onclick=()=>window.api.windowMaximize();
 document.getElementById('btnClose').onclick=()=>window.api.windowClose();
-
-// ─ Tab1 ─
 const state1={files:[],outputDir:null,running:false,lastDir:null};
 const dz1=document.getElementById('dz1');
 const fileList=document.getElementById('fileList');
@@ -299,21 +255,21 @@ function addFiles1(paths){
   renderFiles();updateBtn1();
 }
 function renderFiles(){
-  if(!state1.files.length){fileList.innerHTML='<div class="empty-state">추가된 파일이 없습니다</div>';return;}
+  if(!state1.files.length){fileList.innerHTML='<div class="empty-state">\ucd94\uac00\ub41c \ud30c\uc77c\uc774 \uc5c6\uc2b5\ub2c8\ub2e4</div>';return;}
   fileList.innerHTML=state1.files.map((f,i)=>`
     <div class="file-item status-${f.status}">
       <div class="file-icon fi-${f.ext}">${f.ext.toUpperCase()}</div>
       <div class="file-info"><div class="file-name" title="${f.path}">${f.name}</div><div class="file-sub">${f.path}</div></div>
       ${badgeHtml(f)}
-      ${!state1.running?`<button class="file-remove" data-i="${i}">✕</button>`:''}
+      ${!state1.running?`<button class="file-remove" data-i="${i}">\u2715</button>`:''}
     </div>`).join('');
   fileList.querySelectorAll('.file-remove').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();state1.files.splice(+b.dataset.i,1);renderFiles();updateBtn1();}));
 }
 function badgeHtml(f){
-  if(f.status==='idle')return '<span class="file-badge badge-idle">대기</span>';
-  if(f.status==='processing')return `<span class="file-badge badge-processing"><span class="spinner"></span>${f.imageCount}장</span>`;
-  if(f.status==='done')return `<span class="file-badge badge-done">✓ ${f.imageCount}장</span>`;
-  if(f.status==='error')return '<span class="file-badge badge-error">오류</span>';
+  if(f.status==='idle')return '<span class="file-badge badge-idle">\ub300\uae30</span>';
+  if(f.status==='processing')return `<span class="file-badge badge-processing"><span class="spinner"></span>${f.imageCount}\uc7a5</span>`;
+  if(f.status==='done')return `<span class="file-badge badge-done">\u2713 ${f.imageCount}\uc7a5</span>`;
+  if(f.status==='error')return '<span class="file-badge badge-error">\uc624\ub958</span>';
   return '';
 }
 function updateBtn1(){btnExtract.disabled=state1.running||!state1.files.length||!state1.outputDir;}
@@ -325,7 +281,7 @@ btnOpenFolder.addEventListener('click',()=>{const t=state1.lastDir||state1.outpu
 btnExtract.addEventListener('click',async()=>{
   if(state1.running||!state1.outputDir||!state1.files.length)return;
   state1.running=true;state1.files.forEach(f=>{f.status='idle';f.imageCount=0;f.error='';});renderFiles();
-  btnExtract.disabled=true;btnExtract.textContent='추출 중...';progressWrap.classList.add('on');progressBar.style.width='0%';
+  btnExtract.disabled=true;btnExtract.textContent='\ucd94\ucd9c \uc911...';progressWrap.classList.add('on');progressBar.style.width='0%';
   window.api.removeProgressListener();
   window.api.onProgress(({fileIndex,fileTotal,status,imageCount,error})=>{
     const f=state1.files[fileIndex];if(!f)return;
@@ -334,11 +290,9 @@ btnExtract.addEventListener('click',async()=>{
     renderFiles();
   });
   await window.api.startExtract({filePaths:state1.files.map(f=>f.path),outputDir:state1.outputDir});
-  state1.running=false;progressBar.style.width='100%';btnExtract.textContent='추출 시작';
+  state1.running=false;progressBar.style.width='100%';btnExtract.textContent='\ucd94\ucd9c \uc2dc\uc791';
   state1.lastDir=state1.outputDir;updateBtn1();renderFiles();
 });
-
-// ─ Tab2 ─
 let resamplePath=null,resampleMeta=null;
 const dz2=document.getElementById('dz2');
 const compareWrap=document.getElementById('compareWrap');
@@ -371,13 +325,13 @@ function updateResampleInfo(){
   if(!resampleMeta)return;
   const scale=parseFloat(scaleSlider.value);
   const nw=Math.round(resampleMeta.width*scale),nh=Math.round(resampleMeta.height*scale);
-  resampleInfo.textContent=`원본: ${resampleMeta.width}×${resampleMeta.height}px  →  업스케일: ${nw}×${nh}px (${scale}×)  ·  ${(resampleMeta.size/1024).toFixed(0)} KB`;
+  resampleInfo.textContent=`\uc6d0\ubcf8: ${resampleMeta.width}\u00d7${resampleMeta.height}px  \u2192  \uc5c5\uc2a4\ucf00\uc77c: ${nw}\u00d7${nh}px (${scale}\u00d7)  \u00b7  ${(resampleMeta.size/1024).toFixed(0)} KB`;
 }
-scaleSlider.addEventListener('input',()=>{scaleVal.textContent=scaleSlider.value+'×';updateResampleInfo();});
+scaleSlider.addEventListener('input',()=>{scaleVal.textContent=scaleSlider.value+'\u00d7';updateResampleInfo();});
 document.getElementById('btnResampleSave').addEventListener('click',async()=>{
   if(!resamplePath)return;
   const saved=await window.api.resampleSave({filePath:resamplePath,scale:parseFloat(scaleSlider.value)});
-  if(saved)resampleInfo.textContent='✓ 저장 완료: '+saved;
+  if(saved)resampleInfo.textContent='\u2713 \uc800\uc7a5 \uc644\ub8cc: '+saved;
 });
 let isDragging=false;
 compareHandle.addEventListener('mousedown',e=>{isDragging=true;e.preventDefault();});
@@ -395,60 +349,6 @@ function setComparePos(pct){
   imgProc.style.clipPath=`inset(0 ${(100-pct).toFixed(1)}% 0 0)`;
   imgOrig.style.clipPath=`inset(0 0 0 ${p}%)`;
 }
-
-// ─ Tab3: PC에서 찾기 + 모델 준비 ─
-const modelBanner    = document.getElementById('modelBanner');
-const modelBannerIcon= document.getElementById('modelBannerIcon');
-const modelBannerText= document.getElementById('modelBannerText');
-const modelBannerBarWrap= document.getElementById('modelBannerBarWrap');
-const modelBannerFill= document.getElementById('modelBannerFill');
-let modelReady = false;
-
-function setModelBanner(stage, pct) {
-  modelBanner.className = 'model-banner';
-  if (stage === 'downloading') {
-    modelBanner.classList.add('downloading');
-    modelBannerIcon.textContent = '⬇️';
-    modelBannerText.textContent = `AI 모델 다운로드 중... ${pct}%  (최소 일회)`;
-    modelBannerBarWrap.style.display = 'block';
-    modelBannerFill.style.width = pct + '%';
-  } else if (stage === 'loading') {
-    modelBanner.classList.add('downloading');
-    modelBannerIcon.textContent = '⏳';
-    modelBannerText.textContent = 'AI 모델 로딩 중...';
-    modelBannerBarWrap.style.display = 'none';
-  } else if (stage === 'ready') {
-    modelBanner.classList.add('ready');
-    modelBannerIcon.textContent = '✅';
-    modelBannerText.textContent = 'AI 모델 준비 완료  ·  MobileNetV2';
-    modelBannerBarWrap.style.display = 'none';
-    modelReady = true;
-    updateScanBtn();
-  } else if (stage === 'error') {
-    modelBanner.classList.add('error');
-    modelBannerIcon.textContent = '❌';
-    modelBannerText.textContent = '모델 로드 실패 — 인터넷 연결을 확인하세요';
-    modelBannerBarWrap.style.display = 'none';
-  }
-}
-
-// 탭 진입 시 모델 준비 시작 (한 번만)
-let modelInitStarted = false;
-tabs.forEach(t => {
-  if (t.dataset.tab === 'pcsearch') {
-    t.addEventListener('click', () => {
-      if (modelInitStarted) return;
-      modelInitStarted = true;
-      window.api.removeModelListener();
-      window.api.onModelProgress(({ stage, pct }) => setModelBanner(stage, pct));
-      setModelBanner('loading', 0);
-      window.api.modelPrepare().then(res => {
-        if (!res.success) setModelBanner('error', 0);
-      });
-    });
-  }
-});
-
 let pcQueryPath=null,pcScanDir=null;
 const dz4=document.getElementById('dz4');
 const pcQueryThumb=document.getElementById('pcQueryThumb');
@@ -475,43 +375,36 @@ document.getElementById('btnScanFolder').addEventListener('click',async()=>{
   const f=await window.api.openScanFolder();
   if(f){pcScanDir=f;pcFolderPath.textContent=f;pcFolderPath.classList.add('has');updateScanBtn();}
 });
-function updateScanBtn(){btnStartScan.disabled=!modelReady||!pcQueryPath||!pcScanDir;}
+function updateScanBtn(){btnStartScan.disabled=!pcQueryPath||!pcScanDir;}
 btnStartScan.addEventListener('click',async()=>{
   btnStartScan.disabled=true;
   pcResults.innerHTML='';
-  pcProgress.textContent='스캔 준비 중...';
+  pcProgress.textContent='\uc2a4\uce94 \uc900\ube44 \uc911...';
   pcProgress.classList.add('on');
   window.api.removeScanListeners();
-  window.api.onScanTotal(total=>{pcProgress.textContent=`이미지 ${total}개 발견, AI 분석 중...`;});
-  window.api.onScanProgress(({current,total})=>{pcProgress.textContent=`AI 분석 중... ${current} / ${total}`;});
+  window.api.onScanTotal(total=>{pcProgress.textContent=`\uc774\ubbf8\uc9c0 ${total}\uac1c \ubc1c\uacac, \ubd84\uc11d \uc911...`;});
+  window.api.onScanProgress(({current,total})=>{pcProgress.textContent=`\ubd84\uc11d \uc911... ${current} / ${total}`;});
   const results=await window.api.phashScan({queryPath:pcQueryPath,scanDir:pcScanDir});
   pcProgress.classList.remove('on');
   btnStartScan.disabled=false;
-  if(!results.length){
-    pcResults.innerHTML='<div class="pc-empty">유사한 이미지를 찾지 못했습니다</div>';
-    return;
-  }
+  if(!results.length){pcResults.innerHTML='<div class="pc-empty">\uc720\uc0ac\ud55c \uc774\ubbf8\uc9c0\ub97c \ucc3e\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4</div>';return;}
   pcResults.innerHTML=results.map(r=>`
     <div class="pc-result-item${r.matchType==='exact'?' match-exact':''}" data-path="${r.filePath}" title="${r.filePath}">
       <img class="pc-result-thumb" src="data:image/png;base64,${r.preview}">
-      <span class="pc-result-res">${r.width}×${r.height}</span>
-      <span class="pc-result-badge${r.matchType==='exact'?' exact':''}">${r.matchType==='exact'?'복사본':r.similarity+'%'}</span>
+      <span class="pc-result-res">${r.width}\u00d7${r.height}</span>
+      <span class="pc-result-badge${r.matchType==='exact'?' exact':''}">${r.matchType==='exact'?'\ubcf5\uc0ac\ubcf8':r.similarity+'%'}</span>
     </div>`).join('');
   pcResults.querySelectorAll('.pc-result-item').forEach(el=>{
     el.addEventListener('click',()=>window.api.openPath(el.dataset.path));
     el.addEventListener('dblclick',()=>window.api.openFolderInExplorer(el.dataset.path.replace(/[\\\x2F][^\\\x2F]+$/,'')));
   });
 });
-
-// ─ Tab4 ─
 const gWebview=document.getElementById('gWebview');
 const webviewUrl=document.getElementById('webviewUrl');
 gWebview.addEventListener('did-navigate',e=>{webviewUrl.textContent=e.url;});
 gWebview.addEventListener('did-navigate-in-page',e=>{webviewUrl.textContent=e.url;});
 document.getElementById('btnReloadLens').onclick=()=>gWebview.reload();
 gWebview.addEventListener('new-window',e=>window.api.openExternal(e.url));
-
-// ─ Helpers ─
 function setupDrop(el,cb){
   el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('over');});
   el.addEventListener('dragleave',()=>el.classList.remove('over'));
