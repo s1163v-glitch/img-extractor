@@ -60,8 +60,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .btn-icon:disabled{opacity:.4;cursor:not-allowed}
 .file-list-wrap{flex:1;min-height:0;display:flex;flex-direction:column;gap:6px;overflow:hidden}
 .file-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px;min-height:0}
-.file-list::-webkit-scrollbar{width:4px}
-.file-list::-webkit-scrollbar-thumb{background:var(--elevated);border-radius:2px}
+.file-list::-webkit-scrollbar,.pc-results::-webkit-scrollbar{width:4px}
+.file-list::-webkit-scrollbar-thumb,.pc-results::-webkit-scrollbar-thumb{background:var(--elevated);border-radius:2px}
 .empty-state{display:flex;align-items:center;justify-content:center;height:80px;color:var(--muted);font-size:13px}
 .file-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r);transition:background .1s}
 .file-item:hover{background:var(--elevated)}
@@ -99,8 +99,29 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .compare-handle{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:34px;height:34px;border-radius:50%;background:var(--white);box-shadow:0 2px 10px rgba(0,0,0,.6);cursor:ew-resize;z-index:11;display:flex;align-items:center;justify-content:center;font-size:10px;color:#333}
 .compare-handle::after{content:'◄ ►';letter-spacing:-1px}
 .compare-label{position:absolute;top:12px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:10px;background:rgba(0,0,0,.6);color:var(--white);pointer-events:none;z-index:12}
-.label-orig{right:12px}
-.label-proc{left:12px}
+.label-orig{right:12px}.label-proc{left:12px}
+/* 모델 상태 배너 */
+.model-banner{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;
+  border-radius:var(--r);
+  background:var(--elevated);
+  font-size:12px;
+  flex-shrink:0;
+}
+.model-banner.downloading{background:var(--yellow-dim);color:var(--yellow)}
+.model-banner.ready{background:var(--green-dim);color:var(--green)}
+.model-banner.error{background:var(--red-dim);color:var(--red)}
+.model-banner-bar{
+  flex:1;height:4px;background:rgba(0,0,0,.2);
+  border-radius:2px;overflow:hidden;
+}
+.model-banner-fill{
+  height:100%;background:currentColor;
+  width:0%;transition:width .3s ease;
+  border-radius:2px;
+  opacity:.7;
+}
 /* PC Search */
 .pc-top{display:flex;gap:10px;flex-shrink:0}
 .pc-query-zone{flex:1;border:2px dashed var(--brand-b);border-radius:var(--r-lg);padding:16px;text-align:center;cursor:pointer;background:var(--brand-dim);transition:all .15s;min-height:90px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
@@ -111,46 +132,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .pc-folder-path.has{color:var(--text)}
 .pc-scan-progress{font-size:12px;color:var(--muted);text-align:center;flex-shrink:0;display:none}
 .pc-scan-progress.on{display:block}
-/* 고정 크기 그리드 */
-.pc-results{
-  flex:1;min-height:0;
-  overflow-y:auto;
-  display:grid;
-  grid-template-columns:repeat(auto-fill, var(--thumb));
-  gap:8px;
-  align-content:start;
-  padding-right:2px;
-}
-.pc-results::-webkit-scrollbar{width:4px}
+.pc-results{flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,var(--thumb));gap:8px;align-content:start;padding-right:2px}
 .pc-results::-webkit-scrollbar-track{background:transparent}
-.pc-results::-webkit-scrollbar-thumb{background:var(--elevated);border-radius:2px}
-/* 썸네일 고정 정사각형 */
-.pc-result-item{
-  width:var(--thumb);
-  height:var(--thumb);
-  background:var(--elevated);
-  border-radius:var(--r);
-  overflow:hidden;
-  cursor:pointer;
-  transition:transform .15s, box-shadow .15s;
-  position:relative;
-  flex-shrink:0;
-}
+.pc-result-item{width:var(--thumb);height:var(--thumb);background:var(--elevated);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:transform .15s,box-shadow .15s;position:relative;flex-shrink:0}
 .pc-result-item:hover{transform:scale(1.04);box-shadow:0 4px 14px rgba(0,0,0,.5)}
 .pc-result-item.match-exact{outline:2px solid var(--brand)}
 .pc-result-thumb{width:100%;height:100%;object-fit:cover;display:block}
-.pc-result-badge{
-  position:absolute;bottom:5px;right:5px;
-  font-size:11px;font-weight:700;
-  padding:2px 7px;border-radius:8px;
-  background:rgba(0,0,0,.8);color:var(--white);
-}
+.pc-result-badge{position:absolute;bottom:5px;right:5px;font-size:11px;font-weight:700;padding:2px 7px;border-radius:8px;background:rgba(0,0,0,.8);color:var(--white)}
 .pc-result-badge.exact{background:var(--brand)}
-.pc-result-res{
-  position:absolute;bottom:5px;left:5px;
-  font-size:9px;padding:2px 5px;border-radius:6px;
-  background:rgba(0,0,0,.65);color:rgba(255,255,255,.75);
-}
+.pc-result-res{position:absolute;bottom:5px;left:5px;font-size:9px;padding:2px 5px;border-radius:6px;background:rgba(0,0,0,.65);color:rgba(255,255,255,.75)}
 .pc-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:13px;grid-column:1/-1}
 /* Web */
 .webview-wrap{flex:1;border-radius:var(--r-lg);overflow:hidden;background:#1a1a1a;display:flex;flex-direction:column;min-height:0}
@@ -180,6 +170,8 @@ webview{flex:1;width:100%}
     <div class="tab" data-tab="websearch">🔍 웹에서 찾기</div>
   </div>
   <div class="panels">
+
+    <!-- Tab1 -->
     <div class="panel active" id="panel-extract">
       <div class="drop-zone" id="dz1">
         <div class="dz-icon">📄</div>
@@ -203,6 +195,8 @@ webview{flex:1;width:100%}
         </div>
       </div>
     </div>
+
+    <!-- Tab2 -->
     <div class="panel" id="panel-resample">
       <div class="drop-zone" id="dz2">
         <div class="dz-icon">🖼</div>
@@ -223,7 +217,19 @@ webview{flex:1;width:100%}
         <span class="compare-label label-orig">원본</span>
       </div>
     </div>
+
+    <!-- Tab3: PC에서 찾기 -->
     <div class="panel" id="panel-pcsearch">
+
+      <!-- 모델 상태 배너 -->
+      <div class="model-banner" id="modelBanner">
+        <span id="modelBannerIcon">⏳</span>
+        <span id="modelBannerText">AI 모델 준비 중...</span>
+        <div class="model-banner-bar" id="modelBannerBarWrap" style="display:none">
+          <div class="model-banner-fill" id="modelBannerFill"></div>
+        </div>
+      </div>
+
       <div class="pc-top">
         <div class="pc-query-zone" id="dz4">
           <img class="pc-query-thumb" id="pcQueryThumb">
@@ -238,11 +244,14 @@ webview{flex:1;width:100%}
           <button class="btn-primary" id="btnStartScan" disabled style="margin-top:4px">검색 시작</button>
         </div>
       </div>
+
       <div class="pc-scan-progress" id="pcProgress"></div>
       <div class="pc-results" id="pcResults">
         <div class="pc-empty">이미지와 폴더를 선택한 후 검색을 시작하세요</div>
       </div>
     </div>
+
+    <!-- Tab4 -->
     <div class="panel" id="panel-websearch">
       <div class="webview-wrap">
         <div class="webview-toolbar">
@@ -255,6 +264,7 @@ webview{flex:1;width:100%}
     </div>
   </div>
 </div>
+
 <script>
 const tabs=document.querySelectorAll('.tab');
 const panels=document.querySelectorAll('.panel');
@@ -267,6 +277,8 @@ tabs.forEach(t=>t.addEventListener('click',()=>{
 document.getElementById('btnMin').onclick=()=>window.api.windowMinimize();
 document.getElementById('btnMax').onclick=()=>window.api.windowMaximize();
 document.getElementById('btnClose').onclick=()=>window.api.windowClose();
+
+// ─ Tab1 ─
 const state1={files:[],outputDir:null,running:false,lastDir:null};
 const dz1=document.getElementById('dz1');
 const fileList=document.getElementById('fileList');
@@ -325,6 +337,8 @@ btnExtract.addEventListener('click',async()=>{
   state1.running=false;progressBar.style.width='100%';btnExtract.textContent='추출 시작';
   state1.lastDir=state1.outputDir;updateBtn1();renderFiles();
 });
+
+// ─ Tab2 ─
 let resamplePath=null,resampleMeta=null;
 const dz2=document.getElementById('dz2');
 const compareWrap=document.getElementById('compareWrap');
@@ -381,6 +395,60 @@ function setComparePos(pct){
   imgProc.style.clipPath=`inset(0 ${(100-pct).toFixed(1)}% 0 0)`;
   imgOrig.style.clipPath=`inset(0 0 0 ${p}%)`;
 }
+
+// ─ Tab3: PC에서 찾기 + 모델 준비 ─
+const modelBanner    = document.getElementById('modelBanner');
+const modelBannerIcon= document.getElementById('modelBannerIcon');
+const modelBannerText= document.getElementById('modelBannerText');
+const modelBannerBarWrap= document.getElementById('modelBannerBarWrap');
+const modelBannerFill= document.getElementById('modelBannerFill');
+let modelReady = false;
+
+function setModelBanner(stage, pct) {
+  modelBanner.className = 'model-banner';
+  if (stage === 'downloading') {
+    modelBanner.classList.add('downloading');
+    modelBannerIcon.textContent = '⬇️';
+    modelBannerText.textContent = `AI 모델 다운로드 중... ${pct}%  (최소 일회)`;
+    modelBannerBarWrap.style.display = 'block';
+    modelBannerFill.style.width = pct + '%';
+  } else if (stage === 'loading') {
+    modelBanner.classList.add('downloading');
+    modelBannerIcon.textContent = '⏳';
+    modelBannerText.textContent = 'AI 모델 로딩 중...';
+    modelBannerBarWrap.style.display = 'none';
+  } else if (stage === 'ready') {
+    modelBanner.classList.add('ready');
+    modelBannerIcon.textContent = '✅';
+    modelBannerText.textContent = 'AI 모델 준비 완료  ·  MobileNetV2';
+    modelBannerBarWrap.style.display = 'none';
+    modelReady = true;
+    updateScanBtn();
+  } else if (stage === 'error') {
+    modelBanner.classList.add('error');
+    modelBannerIcon.textContent = '❌';
+    modelBannerText.textContent = '모델 로드 실패 — 인터넷 연결을 확인하세요';
+    modelBannerBarWrap.style.display = 'none';
+  }
+}
+
+// 탭 진입 시 모델 준비 시작 (한 번만)
+let modelInitStarted = false;
+tabs.forEach(t => {
+  if (t.dataset.tab === 'pcsearch') {
+    t.addEventListener('click', () => {
+      if (modelInitStarted) return;
+      modelInitStarted = true;
+      window.api.removeModelListener();
+      window.api.onModelProgress(({ stage, pct }) => setModelBanner(stage, pct));
+      setModelBanner('loading', 0);
+      window.api.modelPrepare().then(res => {
+        if (!res.success) setModelBanner('error', 0);
+      });
+    });
+  }
+});
+
 let pcQueryPath=null,pcScanDir=null;
 const dz4=document.getElementById('dz4');
 const pcQueryThumb=document.getElementById('pcQueryThumb');
@@ -407,15 +475,15 @@ document.getElementById('btnScanFolder').addEventListener('click',async()=>{
   const f=await window.api.openScanFolder();
   if(f){pcScanDir=f;pcFolderPath.textContent=f;pcFolderPath.classList.add('has');updateScanBtn();}
 });
-function updateScanBtn(){btnStartScan.disabled=!pcQueryPath||!pcScanDir;}
+function updateScanBtn(){btnStartScan.disabled=!modelReady||!pcQueryPath||!pcScanDir;}
 btnStartScan.addEventListener('click',async()=>{
   btnStartScan.disabled=true;
   pcResults.innerHTML='';
   pcProgress.textContent='스캔 준비 중...';
   pcProgress.classList.add('on');
   window.api.removeScanListeners();
-  window.api.onScanTotal(total=>{pcProgress.textContent=`이미지 ${total}개 발견, 분석 중...`;});
-  window.api.onScanProgress(({current,total})=>{pcProgress.textContent=`분석 중... ${current} / ${total}`;});
+  window.api.onScanTotal(total=>{pcProgress.textContent=`이미지 ${total}개 발견, AI 분석 중...`;});
+  window.api.onScanProgress(({current,total})=>{pcProgress.textContent=`AI 분석 중... ${current} / ${total}`;});
   const results=await window.api.phashScan({queryPath:pcQueryPath,scanDir:pcScanDir});
   pcProgress.classList.remove('on');
   btnStartScan.disabled=false;
@@ -434,12 +502,16 @@ btnStartScan.addEventListener('click',async()=>{
     el.addEventListener('dblclick',()=>window.api.openFolderInExplorer(el.dataset.path.replace(/[\\\x2F][^\\\x2F]+$/,'')));
   });
 });
+
+// ─ Tab4 ─
 const gWebview=document.getElementById('gWebview');
 const webviewUrl=document.getElementById('webviewUrl');
 gWebview.addEventListener('did-navigate',e=>{webviewUrl.textContent=e.url;});
 gWebview.addEventListener('did-navigate-in-page',e=>{webviewUrl.textContent=e.url;});
 document.getElementById('btnReloadLens').onclick=()=>gWebview.reload();
 gWebview.addEventListener('new-window',e=>window.api.openExternal(e.url));
+
+// ─ Helpers ─
 function setupDrop(el,cb){
   el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('over');});
   el.addEventListener('dragleave',()=>el.classList.remove('over'));
