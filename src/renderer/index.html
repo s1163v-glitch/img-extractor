@@ -2,369 +2,555 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ImgExtractor</title>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#313338;--sidebar:#2b2d31;--elevated:#404249;--input:#1e1f22;
+  --border:rgba(255,255,255,0.06);--text:#dbdee1;--muted:#80848e;
+  --brand:#5865f2;--brand-h:#4752c4;--brand-dim:rgba(88,101,242,0.15);--brand-b:rgba(88,101,242,0.4);
+  --green:#23a559;--green-dim:rgba(35,165,89,0.15);
+  --red:#f23f42;--red-dim:rgba(242,63,66,0.15);
+  --yellow:#f0b232;--yellow-dim:rgba(240,178,50,0.15);
+  --white:#fff;--r:4px;--r-lg:8px;
+  --font:'gg sans','Noto Sans KR',system-ui,sans-serif;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;user-select:none;overflow:hidden}
+.app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 
-  :root {
-    --bg: #313338;
-    --sidebar: #2b2d31;
-    --surface: #383a40;
-    --elevated: #404249;
-    --input: #1e1f22;
-    --border: rgba(255,255,255,0.06);
-    --text: #dbdee1;
-    --muted: #80848e;
-    --brand: #5865f2;
-    --brand-hover: #4752c4;
-    --brand-dim: rgba(88,101,242,0.15);
-    --brand-border: rgba(88,101,242,0.4);
-    --green: #23a559;
-    --green-dim: rgba(35,165,89,0.15);
-    --red: #f23f42;
-    --red-dim: rgba(242,63,66,0.15);
-    --yellow: #f0b232;
-    --yellow-dim: rgba(240,178,50,0.15);
-    --white: #ffffff;
-    --radius: 4px;
-    --radius-lg: 8px;
-    --font: 'gg sans', 'Noto Sans KR', system-ui, sans-serif;
-  }
+/* Titlebar */
+.titlebar{display:flex;align-items:center;height:32px;background:var(--sidebar);border-bottom:1px solid var(--border);flex-shrink:0;-webkit-app-region:drag;padding-left:12px}
+.tb-icon{width:16px;height:16px;background:var(--brand);border-radius:50%;flex-shrink:0;margin-right:8px;pointer-events:none}
+.tb-name{font-size:13px;font-weight:700;color:var(--white);pointer-events:none}
+.tb-div{width:1px;height:12px;background:rgba(255,255,255,0.15);margin:0 8px;pointer-events:none}
+.tb-sub{font-size:12px;color:var(--muted);flex:1;pointer-events:none}
+.tb-controls{display:flex;height:100%;-webkit-app-region:no-drag;margin-left:auto}
+.wc{width:46px;height:100%;display:flex;align-items:center;justify-content:center;background:none;border:none;color:var(--muted);cursor:pointer;transition:background .1s,color .1s}
+.wc:hover{background:rgba(255,255,255,0.1);color:var(--white)}
+.wc.x:hover{background:#c42b1c;color:var(--white)}
+.wc svg{width:10px;height:10px}
 
-  html, body {
-    height: 100%;
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font);
-    font-size: 14px;
-    user-select: none;
-    overflow: hidden;
-  }
+/* Tab bar */
+.tabbar{display:flex;background:var(--sidebar);border-bottom:1px solid var(--border);flex-shrink:0;padding:0 8px;-webkit-app-region:no-drag}
+.tab{padding:10px 16px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--white);border-bottom-color:var(--brand)}
 
-  .app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+/* Panels */
+.panels{flex:1;overflow:hidden;display:flex;flex-direction:column;-webkit-app-region:no-drag}
+.panel{display:none;flex:1;flex-direction:column;padding:16px;gap:12px;overflow:hidden;min-height:0}
+.panel.active{display:flex}
 
-  /* ── Titlebar ── */
-  .titlebar {
-    display: flex;
-    align-items: center;
-    height: 32px;
-    background: var(--sidebar);
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-    -webkit-app-region: drag;  /* 타이틀바 전체 드래그 */
-    padding-left: 12px;
-  }
-  /* 타이틀바 안 텍스트/아이콘은 no-drag 제거 — 드래그 방해 안 하게 */
-  .titlebar-icon {
-    width: 16px; height: 16px;
-    background: var(--brand);
-    border-radius: 50%;
-    flex-shrink: 0;
-    margin-right: 8px;
-    pointer-events: none;  /* 클릭 이벤트 무시, 드래그 영역 유지 */
-  }
-  .titlebar-name {
-    font-size: 13px; font-weight: 700; color: var(--white);
-    pointer-events: none;
-  }
-  .titlebar-divider {
-    width: 1px; height: 12px;
-    background: rgba(255,255,255,0.15);
-    margin: 0 8px;
-    pointer-events: none;
-  }
-  .titlebar-sub {
-    font-size: 12px; color: var(--muted);
-    flex: 1;
-    pointer-events: none;
-  }
-  /* 윈도우 컨트롤 버튼만 no-drag */
-  .titlebar-controls {
-    display: flex;
-    height: 100%;
-    -webkit-app-region: no-drag;
-    margin-left: auto;
-  }
-  .wc-btn {
-    width: 46px; height: 100%;
-    display: flex; align-items: center; justify-content: center;
-    background: none; border: none;
-    color: var(--muted); cursor: pointer;
-    transition: background 0.1s, color 0.1s;
-  }
-  .wc-btn:hover { background: rgba(255,255,255,0.1); color: var(--white); }
-  .wc-btn.close:hover { background: #c42b1c; color: var(--white); }
-  .wc-btn svg { width: 10px; height: 10px; }
+/* Common */
+.drop-zone{border:2px dashed var(--brand-b);border-radius:var(--r-lg);padding:24px 20px;text-align:center;cursor:pointer;background:var(--brand-dim);transition:all .15s;flex-shrink:0}
+.drop-zone:hover,.drop-zone.over{border-color:var(--brand);background:rgba(88,101,242,0.2)}
+.dz-icon{font-size:26px;margin-bottom:6px}
+.dz-label{font-size:14px;font-weight:600;color:var(--white);margin-bottom:3px}
+.dz-sub{font-size:12px;color:var(--muted)}
+.section-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;flex-shrink:0}
+.bottom{background:var(--sidebar);margin:0 -16px -16px;padding:12px 16px;display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--border);flex-shrink:0}
+.progress-wrap{height:4px;background:var(--input);border-radius:2px;overflow:hidden;display:none}
+.progress-wrap.on{display:block}
+.progress-bar{height:100%;background:var(--brand);width:0%;transition:width .3s ease;border-radius:2px}
+.output-row{display:flex;align-items:center;gap:8px;background:var(--input);border-radius:var(--r);padding:8px 12px}
+.out-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;flex-shrink:0}
+.out-path{flex:1;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.out-path.has{color:var(--text)}
+.btn-sm{padding:5px 12px;background:var(--elevated);border:none;border-radius:var(--r);color:var(--text);font-size:12px;font-weight:500;cursor:pointer;transition:background .1s;flex-shrink:0}
+.btn-sm:hover{background:#4e5058}
+.action-row{display:flex;gap:8px}
+.btn-primary{flex:1;padding:10px;background:var(--brand);border:none;border-radius:var(--r);color:var(--white);font-size:14px;font-weight:600;cursor:pointer;transition:background .15s}
+.btn-primary:hover:not(:disabled){background:var(--brand-h)}
+.btn-primary:disabled{background:#3d4271;color:#666a9a;cursor:not-allowed}
+.btn-icon{padding:10px 14px;background:var(--elevated);border:none;border-radius:var(--r);color:var(--muted);font-size:16px;cursor:pointer;transition:all .1s}
+.btn-icon:hover:not(:disabled){background:#4e5058;color:var(--text)}
+.btn-icon:disabled{opacity:.4;cursor:not-allowed}
 
-  /* ── Main ── */
-  .main {
-    flex: 1; display: flex; flex-direction: column;
-    padding: 16px; gap: 12px; overflow: hidden; min-height: 0;
-    -webkit-app-region: no-drag;
-  }
+/* File list */
+.file-list-wrap{flex:1;min-height:0;display:flex;flex-direction:column;gap:6px;overflow:hidden}
+.file-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px;min-height:0}
+.file-list::-webkit-scrollbar{width:4px}
+.file-list::-webkit-scrollbar-thumb{background:var(--elevated);border-radius:2px}
+.empty-state{display:flex;align-items:center;justify-content:center;height:80px;color:var(--muted);font-size:13px}
+.file-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r);transition:background .1s}
+.file-item:hover{background:var(--elevated)}
+.file-item.status-processing{background:var(--yellow-dim)}
+.file-item.status-done{background:var(--green-dim)}
+.file-item.status-error{background:var(--red-dim)}
+.file-icon{width:34px;height:34px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0}
+.fi-pptx,.fi-ppt{background:rgba(209,83,46,.2);color:#e07560}
+.fi-docx,.fi-doc{background:rgba(68,114,196,.2);color:#6090d0}
+.fi-pdf{background:rgba(220,53,53,.2);color:#e06060}
+.fi-hwp,.fi-hwpx{background:rgba(35,165,89,.2);color:#40b870}
+.file-info{flex:1;min-width:0}
+.file-name{font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-sub{font-size:11px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;flex-shrink:0}
+.badge-idle{background:var(--elevated);color:var(--muted)}
+.badge-processing{background:var(--yellow-dim);color:var(--yellow)}
+.badge-done{background:var(--green-dim);color:var(--green)}
+.badge-error{background:var(--red-dim);color:var(--red)}
+.file-remove{background:none;border:none;color:var(--muted);cursor:pointer;padding:4px 6px;border-radius:var(--r);font-size:14px;line-height:1;opacity:0;transition:all .1s;flex-shrink:0}
+.file-item:hover .file-remove{opacity:1}
+.file-remove:hover{color:var(--red);background:var(--red-dim)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{display:inline-block;width:10px;height:10px;border:1.5px solid rgba(240,178,50,.3);border-top-color:var(--yellow);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:4px}
 
-  /* ── Drop Zone ── */
-  .drop-zone {
-    border: 2px dashed var(--brand-border);
-    border-radius: var(--radius-lg);
-    padding: 28px 20px; text-align: center; cursor: pointer;
-    background: var(--brand-dim); transition: all 0.15s; flex-shrink: 0;
-  }
-  .drop-zone:hover, .drop-zone.drag-over { border-color: var(--brand); background: rgba(88,101,242,0.2); }
-  .drop-zone .drop-icon { font-size: 28px; margin-bottom: 8px; }
-  .drop-zone .drop-label { font-size: 14px; font-weight: 600; color: var(--white); margin-bottom: 4px; }
-  .drop-zone .drop-sub { font-size: 12px; color: var(--muted); letter-spacing: 0.04em; }
+/* ── Tab2: Resample ── */
+#resampleArea{flex:1;display:flex;flex-direction:column;gap:12px;min-height:0;overflow:hidden}
+.resample-controls{display:flex;align-items:center;gap:12px;flex-shrink:0;flex-wrap:wrap}
+.resample-controls label{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.resample-controls input[type=range]{accent-color:var(--brand);width:140px}
+.compare-wrap{flex:1;position:relative;overflow:hidden;border-radius:var(--r-lg);background:#1a1a1a;min-height:0;display:none}
+.compare-wrap.has-img{display:block}
+.compare-img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain}
+.compare-img.processed{clip-path:inset(0 50% 0 0)}
+.compare-slider{position:absolute;top:0;left:50%;transform:translateX(-50%);width:3px;height:100%;background:var(--white);cursor:ew-resize;z-index:10}
+.compare-slider::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:28px;height:28px;background:var(--white);border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+.compare-label{position:absolute;top:12px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:10px;background:rgba(0,0,0,.5);color:var(--white);pointer-events:none}
+.label-orig{left:12px}
+.label-proc{right:12px}
+.resample-info{font-size:12px;color:var(--muted);flex-shrink:0;text-align:center}
 
-  .section-label {
-    font-size: 11px; font-weight: 700; color: var(--muted);
-    text-transform: uppercase; letter-spacing: 0.08em; flex-shrink: 0;
-  }
+/* ── Tab3: Web Search ── */
+#webSearchArea{flex:1;display:flex;flex-direction:column;gap:12px;min-height:0}
+.search-drop{border:2px dashed var(--brand-b);border-radius:var(--r-lg);padding:32px 20px;text-align:center;cursor:pointer;background:var(--brand-dim);transition:all .15s;flex-shrink:0}
+.search-drop:hover,.search-drop.over{border-color:var(--brand);background:rgba(88,101,242,.2)}
+.webview-wrap{flex:1;border-radius:var(--r-lg);overflow:hidden;background:#1a1a1a;display:none;min-height:0}
+.webview-wrap.on{display:flex;flex-direction:column}
+.webview-toolbar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--sidebar);border-bottom:1px solid var(--border);flex-shrink:0}
+.webview-url{flex:1;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.webview-hint{font-size:11px;color:var(--muted);padding:4px 8px;background:var(--elevated);border-radius:var(--r)}
+webview{flex:1;width:100%}
 
-  .file-list-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
-  .file-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; min-height: 0; }
-  .file-list::-webkit-scrollbar { width: 4px; }
-  .file-list::-webkit-scrollbar-track { background: transparent; }
-  .file-list::-webkit-scrollbar-thumb { background: var(--elevated); border-radius: 2px; }
-
-  .empty-state { display: flex; align-items: center; justify-content: center; height: 80px; color: var(--muted); font-size: 13px; }
-
-  .file-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 8px 10px; border-radius: var(--radius); transition: background 0.1s;
-  }
-  .file-item:hover { background: var(--elevated); }
-  .file-item.status-processing { background: var(--yellow-dim); }
-  .file-item.status-done { background: var(--green-dim); }
-  .file-item.status-error { background: var(--red-dim); }
-
-  .file-icon {
-    width: 34px; height: 34px; border-radius: var(--radius);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 10px; font-weight: 800; flex-shrink: 0;
-  }
-  .fi-pptx, .fi-ppt { background: rgba(209,83,46,0.2); color: #e07560; }
-  .fi-docx, .fi-doc { background: rgba(68,114,196,0.2); color: #6090d0; }
-  .fi-pdf  { background: rgba(220,53,53,0.2); color: #e06060; }
-  .fi-hwp, .fi-hwpx { background: rgba(35,165,89,0.2); color: #40b870; }
-
-  .file-info { flex: 1; min-width: 0; }
-  .file-name { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .file-sub { font-size: 11px; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-  .file-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; flex-shrink: 0; }
-  .badge-idle { background: var(--elevated); color: var(--muted); }
-  .badge-processing { background: var(--yellow-dim); color: var(--yellow); }
-  .badge-done { background: var(--green-dim); color: var(--green); }
-  .badge-error { background: var(--red-dim); color: var(--red); }
-
-  .file-remove {
-    background: none; border: none; color: var(--muted); cursor: pointer;
-    padding: 4px 6px; border-radius: var(--radius); font-size: 14px; line-height: 1;
-    opacity: 0; transition: all 0.1s; flex-shrink: 0;
-  }
-  .file-item:hover .file-remove { opacity: 1; }
-  .file-remove:hover { color: var(--red); background: var(--red-dim); }
-
-  .bottom {
-    background: var(--sidebar); margin: 0 -16px -16px; padding: 12px 16px;
-    display: flex; flex-direction: column; gap: 10px;
-    border-top: 1px solid var(--border); flex-shrink: 0;
-  }
-
-  .progress-wrap { height: 4px; background: var(--input); border-radius: 2px; overflow: hidden; display: none; }
-  .progress-wrap.visible { display: block; }
-  .progress-bar { height: 100%; background: var(--brand); width: 0%; transition: width 0.3s ease; border-radius: 2px; }
-
-  .output-row { display: flex; align-items: center; gap: 8px; background: var(--input); border-radius: var(--radius); padding: 8px 12px; }
-  .output-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; flex-shrink: 0; }
-  .output-path { flex: 1; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .output-path.has { color: var(--text); }
-  .btn-sm { padding: 5px 12px; background: var(--elevated); border: none; border-radius: var(--radius); color: var(--text); font-size: 12px; font-weight: 500; cursor: pointer; transition: background 0.1s; flex-shrink: 0; }
-  .btn-sm:hover { background: #4e5058; }
-
-  .action-row { display: flex; gap: 8px; }
-  .btn-extract { flex: 1; padding: 10px; background: var(--brand); border: none; border-radius: var(--radius); color: var(--white); font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
-  .btn-extract:hover:not(:disabled) { background: var(--brand-hover); }
-  .btn-extract:disabled { background: #3d4271; color: #666a9a; cursor: not-allowed; }
-  .btn-folder-open { padding: 10px 14px; background: var(--elevated); border: none; border-radius: var(--radius); color: var(--muted); font-size: 16px; cursor: pointer; transition: all 0.1s; }
-  .btn-folder-open:hover:not(:disabled) { background: #4e5058; color: var(--text); }
-  .btn-folder-open:disabled { opacity: 0.4; cursor: not-allowed; }
-
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .spinner { display: inline-block; width: 10px; height: 10px; border: 1.5px solid rgba(240,178,50,0.3); border-top-color: var(--yellow); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 4px; }
+/* ── Tab4: PC Search ── */
+#pcSearchArea{flex:1;display:flex;flex-direction:column;gap:12px;min-height:0;overflow:hidden}
+.pc-top{display:flex;gap:10px;flex-shrink:0}
+.pc-query-zone{flex:1;border:2px dashed var(--brand-b);border-radius:var(--r-lg);padding:16px;text-align:center;cursor:pointer;background:var(--brand-dim);transition:all .15s;min-height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.pc-query-zone:hover,.pc-query-zone.over{border-color:var(--brand);background:rgba(88,101,242,.2)}
+.pc-query-thumb{width:60px;height:60px;object-fit:cover;border-radius:var(--r);display:none}
+.pc-folder-box{display:flex;flex-direction:column;gap:6px;justify-content:center;flex-shrink:0}
+.pc-folder-path{font-size:11px;color:var(--muted);padding:4px 8px;background:var(--input);border-radius:var(--r);max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc-folder-path.has{color:var(--text)}
+.pc-scan-progress{font-size:12px;color:var(--muted);text-align:center;flex-shrink:0;display:none}
+.pc-scan-progress.on{display:block}
+.pc-results{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;min-height:0;align-content:start}
+.pc-results::-webkit-scrollbar{width:4px}
+.pc-results::-webkit-scrollbar-thumb{background:var(--elevated);border-radius:2px}
+.pc-result-item{background:var(--elevated);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:all .15s;position:relative}
+.pc-result-item:hover{transform:scale(1.03);box-shadow:0 4px 12px rgba(0,0,0,.4)}
+.pc-result-thumb{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.pc-result-badge{position:absolute;bottom:4px;right:4px;font-size:10px;font-weight:700;padding:2px 6px;border-radius:8px;background:rgba(0,0,0,.7);color:var(--white)}
+.pc-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:13px;grid-column:1/-1}
 </style>
 </head>
 <body>
 <div class="app">
 
+  <!-- Titlebar -->
   <div class="titlebar">
-    <div class="titlebar-icon"></div>
-    <span class="titlebar-name">ImgExtractor</span>
-    <div class="titlebar-divider"></div>
-    <span class="titlebar-sub">문서 이미지 추출기</span>
-    <div class="titlebar-controls">
-      <button class="wc-btn" id="btnMin" title="최소화">
-        <svg viewBox="0 0 10 1" fill="currentColor"><rect width="10" height="1"/></svg>
-      </button>
-      <button class="wc-btn" id="btnMax" title="최대화">
-        <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1">
-          <rect x="0.5" y="0.5" width="9" height="9"/>
-        </svg>
-      </button>
-      <button class="wc-btn close" id="btnClose" title="닫기">
-        <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.2">
-          <path d="M1 1l8 8M9 1l-8 8"/>
-        </svg>
-      </button>
+    <div class="tb-icon"></div>
+    <span class="tb-name">ImgExtractor</span>
+    <div class="tb-div"></div>
+    <span class="tb-sub">문서 이미지 추출기</span>
+    <div class="tb-controls">
+      <button class="wc" id="btnMin"><svg viewBox="0 0 10 1" fill="currentColor"><rect width="10" height="1"/></svg></button>
+      <button class="wc" id="btnMax"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1"><rect x=".5" y=".5" width="9" height="9"/></svg></button>
+      <button class="wc x" id="btnClose"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M1 1l8 8M9 1l-8 8"/></svg></button>
     </div>
   </div>
 
-  <div class="main">
-    <div class="drop-zone" id="dropZone">
-      <div class="drop-icon">📄</div>
-      <div class="drop-label">파일을 드래그하거나 클릭해서 추가</div>
-      <div class="drop-sub">PPTX · DOCX · PDF · HWP · HWPX</div>
+  <!-- Tab bar -->
+  <div class="tabbar">
+    <div class="tab active" data-tab="extract">🖼 이미지 추출</div>
+    <div class="tab" data-tab="resample">✨ 화질 리샘플링</div>
+    <div class="tab" data-tab="websearch">🔍 웹에서 찾기</div>
+    <div class="tab" data-tab="pcsearch">📂 PC에서 찾기</div>
+  </div>
+
+  <div class="panels">
+
+    <!-- ── Tab 1: 이미지 추출 ── -->
+    <div class="panel active" id="panel-extract">
+      <div class="drop-zone" id="dz1">
+        <div class="dz-icon">📄</div>
+        <div class="dz-label">파일을 드래그하거나 클릭해서 추가</div>
+        <div class="dz-sub">PPTX · DOCX · PDF · HWP · HWPX</div>
+      </div>
+      <div class="file-list-wrap">
+        <div class="section-label">파일 목록</div>
+        <div class="file-list" id="fileList"><div class="empty-state">추가된 파일이 없습니다</div></div>
+      </div>
+      <div class="bottom">
+        <div class="progress-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
+        <div class="output-row">
+          <span class="out-label">출력</span>
+          <span class="out-path" id="outputPath">폴더를 선택하세요</span>
+          <button class="btn-sm" id="btnSelectFolder">폴더 선택</button>
+        </div>
+        <div class="action-row">
+          <button class="btn-primary" id="btnExtract" disabled>추출 시작</button>
+          <button class="btn-icon" id="btnOpenFolder" disabled>📂</button>
+        </div>
+      </div>
     </div>
 
-    <div class="file-list-wrap">
-      <div class="section-label">파일 목록</div>
-      <div class="file-list" id="fileList">
-        <div class="empty-state">추가된 파일이 없습니다</div>
+    <!-- ── Tab 2: 화질 리샘플링 ── -->
+    <div class="panel" id="panel-resample">
+      <div class="drop-zone" id="dz2">
+        <div class="dz-icon">🖼</div>
+        <div class="dz-label">이미지를 드래그하거나 클릭해서 추가</div>
+        <div class="dz-sub">PNG · JPG · WEBP · BMP · TIFF</div>
+      </div>
+      <div id="resampleArea">
+        <div class="resample-controls" id="resampleControls" style="display:none">
+          <label>배율 <input type="range" id="scaleSlider" min="1" max="4" step="0.5" value="2"> <span id="scaleVal">2×</span></label>
+          <button class="btn-sm" id="btnResampleSave">💾 저장</button>
+        </div>
+        <div class="resample-info" id="resampleInfo"></div>
+        <div class="compare-wrap" id="compareWrap">
+          <img class="compare-img" id="imgOrig" alt="원본">
+          <img class="compare-img processed" id="imgProc" alt="처리됨">
+          <div class="compare-slider" id="compareSlider"></div>
+          <span class="compare-label label-orig">원본</span>
+          <span class="compare-label label-proc">업스케일</span>
+        </div>
       </div>
     </div>
 
-    <div class="bottom">
-      <div class="progress-wrap" id="progressWrap">
-        <div class="progress-bar" id="progressBar"></div>
-      </div>
-      <div class="output-row">
-        <span class="output-label">출력</span>
-        <span class="output-path" id="outputPath">폴더를 선택하세요</span>
-        <button class="btn-sm" id="btnSelectFolder">폴더 선택</button>
-      </div>
-      <div class="action-row">
-        <button class="btn-extract" id="btnExtract" disabled>추출 시작</button>
-        <button class="btn-folder-open" id="btnOpenFolder" disabled title="출력 폴더 열기">📂</button>
+    <!-- ── Tab 3: 웹에서 찾기 ── -->
+    <div class="panel" id="panel-websearch">
+      <div id="webSearchArea">
+        <div class="search-drop" id="dz3">
+          <div class="dz-icon">🔍</div>
+          <div class="dz-label">이미지를 드래그해서 구글 렌즈로 검색</div>
+          <div class="dz-sub">또는 클릭해서 파일 선택 · 인터넷 연결 필요</div>
+        </div>
+        <div class="webview-wrap" id="webviewWrap">
+          <div class="webview-toolbar">
+            <span class="webview-hint">구글 렌즈</span>
+            <span class="webview-url" id="webviewUrl"></span>
+            <button class="btn-sm" id="btnNewSearch">새 검색</button>
+          </div>
+          <webview id="gWebview" src="about:blank" partition="persist:googlelens"></webview>
+        </div>
       </div>
     </div>
+
+    <!-- ── Tab 4: PC에서 찾기 ── -->
+    <div class="panel" id="panel-pcsearch">
+      <div id="pcSearchArea">
+        <div class="pc-top">
+          <div class="pc-query-zone" id="dz4">
+            <img class="pc-query-thumb" id="pcQueryThumb">
+            <div class="dz-icon" id="dz4Icon">📷</div>
+            <div style="font-size:13px;font-weight:600;color:var(--white)" id="dz4Label">기준 이미지 드롭</div>
+            <div style="font-size:12px;color:var(--muted)">유사한 이미지를 PC에서 찾습니다</div>
+          </div>
+          <div class="pc-folder-box">
+            <div class="section-label">검색 폴더</div>
+            <div class="pc-folder-path" id="pcFolderPath">폴더를 선택하세요</div>
+            <button class="btn-sm" id="btnScanFolder">폴더 선택</button>
+            <button class="btn-primary" id="btnStartScan" disabled style="margin-top:4px">검색 시작</button>
+          </div>
+        </div>
+        <div class="pc-scan-progress" id="pcProgress"></div>
+        <div class="pc-results" id="pcResults">
+          <div class="pc-empty">이미지와 폴더를 선택한 후 검색을 시작하세요</div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
 <script>
-  const state = { files: [], outputDir: null, running: false, lastOutputDir: null };
+// ── Tab switching ──
+const tabs = document.querySelectorAll('.tab');
+const panels = document.querySelectorAll('.panel');
+tabs.forEach(t => t.addEventListener('click', () => {
+  tabs.forEach(x => x.classList.remove('active'));
+  panels.forEach(x => x.classList.remove('active'));
+  t.classList.add('active');
+  document.getElementById('panel-' + t.dataset.tab).classList.add('active');
+}));
 
-  const dropZone = document.getElementById('dropZone');
-  const fileList = document.getElementById('fileList');
-  const outputPath = document.getElementById('outputPath');
-  const btnSelectFolder = document.getElementById('btnSelectFolder');
-  const btnExtract = document.getElementById('btnExtract');
-  const btnOpenFolder = document.getElementById('btnOpenFolder');
-  const progressWrap = document.getElementById('progressWrap');
-  const progressBar = document.getElementById('progressBar');
+// Window controls
+document.getElementById('btnMin').onclick = () => window.api.windowMinimize();
+document.getElementById('btnMax').onclick = () => window.api.windowMaximize();
+document.getElementById('btnClose').onclick = () => window.api.windowClose();
 
-  document.getElementById('btnMin').addEventListener('click', () => window.api.windowMinimize());
-  document.getElementById('btnMax').addEventListener('click', () => window.api.windowMaximize());
-  document.getElementById('btnClose').addEventListener('click', () => window.api.windowClose());
+// ── Tab 1: 이미지 추출 ──────────────────────────────────────────────
+const state1 = { files: [], outputDir: null, running: false, lastDir: null };
+const dz1 = document.getElementById('dz1');
+const fileList = document.getElementById('fileList');
+const outputPath = document.getElementById('outputPath');
+const progressWrap = document.getElementById('progressWrap');
+const progressBar = document.getElementById('progressBar');
+const btnExtract = document.getElementById('btnExtract');
+const btnOpenFolder = document.getElementById('btnOpenFolder');
 
-  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
-  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-  dropZone.addEventListener('drop', e => {
-    e.preventDefault();
-    dropZone.classList.remove('drag-over');
-    addFiles(Array.from(e.dataTransfer.files).map(f => f.path));
+setupDrop(dz1, addFiles1);
+dz1.addEventListener('click', async () => { const p = await window.api.openFile(); if(p.length) addFiles1(p); });
+
+function addFiles1(paths) {
+  const ok = ['pptx','ppt','docx','doc','pdf','hwp','hwpx'];
+  for (const p of paths) {
+    const name = p.split(/[\\\/]/).pop();
+    const ext = name.split('.').pop().toLowerCase();
+    if (!ok.includes(ext) || state1.files.find(f=>f.path===p)) continue;
+    state1.files.push({path:p,name,ext,status:'idle',imageCount:0,error:''});
+  }
+  renderFiles(); updateBtn1();
+}
+
+function renderFiles() {
+  if (!state1.files.length) { fileList.innerHTML='<div class="empty-state">추가된 파일이 없습니다</div>'; return; }
+  fileList.innerHTML = state1.files.map((f,i)=>`
+    <div class="file-item status-${f.status}">
+      <div class="file-icon fi-${f.ext}">${f.ext.toUpperCase()}</div>
+      <div class="file-info"><div class="file-name" title="${f.path}">${f.name}</div><div class="file-sub">${f.path}</div></div>
+      ${badgeHtml(f)}
+      ${!state1.running?`<button class="file-remove" data-i="${i}">✕</button>`:''}
+    </div>`).join('');
+  fileList.querySelectorAll('.file-remove').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();state1.files.splice(+b.dataset.i,1);renderFiles();updateBtn1();}));
+}
+
+function badgeHtml(f) {
+  if(f.status==='idle') return '<span class="file-badge badge-idle">대기</span>';
+  if(f.status==='processing') return `<span class="file-badge badge-processing"><span class="spinner"></span>${f.imageCount}장</span>`;
+  if(f.status==='done') return `<span class="file-badge badge-done">✓ ${f.imageCount}장</span>`;
+  if(f.status==='error') return '<span class="file-badge badge-error">오류</span>';
+  return '';
+}
+
+function updateBtn1() { btnExtract.disabled = state1.running || !state1.files.length || !state1.outputDir; }
+
+document.getElementById('btnSelectFolder').addEventListener('click', async () => {
+  const f = await window.api.openFolder();
+  if (f) { state1.outputDir=f; outputPath.textContent=f; outputPath.classList.add('has'); btnOpenFolder.disabled=false; updateBtn1(); }
+});
+
+btnOpenFolder.addEventListener('click', () => { const t=state1.lastDir||state1.outputDir; if(t) window.api.openFolderInExplorer(t); });
+
+btnExtract.addEventListener('click', async () => {
+  if (state1.running||!state1.outputDir||!state1.files.length) return;
+  state1.running=true; state1.files.forEach(f=>{f.status='idle';f.imageCount=0;f.error='';}); renderFiles();
+  btnExtract.disabled=true; btnExtract.textContent='추출 중...'; progressWrap.classList.add('on'); progressBar.style.width='0%';
+  window.api.removeProgressListener();
+  window.api.onProgress(({fileIndex,fileTotal,status,imageCount,error})=>{
+    const f=state1.files[fileIndex]; if(!f) return;
+    f.status=status; f.imageCount=imageCount||0; if(error) f.error=error;
+    progressBar.style.width=((fileIndex+(status==='done'||status==='error'?1:.5))/fileTotal*100)+'%';
+    renderFiles();
   });
-  dropZone.addEventListener('click', async () => {
-    const paths = await window.api.openFile();
-    if (paths.length) addFiles(paths);
-  });
+  await window.api.startExtract({filePaths:state1.files.map(f=>f.path),outputDir:state1.outputDir});
+  state1.running=false; progressBar.style.width='100%'; btnExtract.textContent='추출 시작';
+  state1.lastDir=state1.outputDir; updateBtn1(); renderFiles();
+});
 
-  function addFiles(paths) {
-    const allowed = ['pptx', 'ppt', 'docx', 'doc', 'pdf', 'hwp', 'hwpx'];
-    for (const p of paths) {
-      const name = p.split(/[\\\/]/).pop();
-      const ext = name.split('.').pop().toLowerCase();
-      if (!allowed.includes(ext)) continue;
-      if (state.files.find(f => f.path === p)) continue;
-      state.files.push({ path: p, name, ext, status: 'idle', imageCount: 0, error: '' });
-    }
-    render(); updateBtn();
+// ── Tab 2: 화질 리샘플링 ────────────────────────────────────────────
+let resamplePath = null;
+let resampleOrigB64 = null;
+let resampleProcB64 = null;
+let isResampleProcessing = false;
+
+const dz2 = document.getElementById('dz2');
+const compareWrap = document.getElementById('compareWrap');
+const imgOrig = document.getElementById('imgOrig');
+const imgProc = document.getElementById('imgProc');
+const slider = document.getElementById('compareSlider');
+const scaleSlider = document.getElementById('scaleSlider');
+const scaleVal = document.getElementById('scaleVal');
+const resampleInfo = document.getElementById('resampleInfo');
+const resampleControls = document.getElementById('resampleControls');
+
+setupDrop(dz2, paths => loadResampleImage(paths[0]));
+dz2.addEventListener('click', async () => {
+  const { canceled, filePaths } = await new Promise(r => window.api.openFile().then(r));
+  // openFile 재사용하면 문서 필터가 걸리므로 그냥 드롭 유도
+});
+
+async function loadResampleImage(p) {
+  const imageExts = ['png','jpg','jpeg','webp','bmp','tiff','gif'];
+  const ext = p.split('.').pop().toLowerCase();
+  if (!imageExts.includes(ext)) return;
+  resamplePath = p;
+  const res = await window.api.resamplePreview({ filePath: p });
+  resampleOrigB64 = res.base64;
+  imgOrig.src = 'data:image/png;base64,' + res.base64;
+  await applyResample();
+  compareWrap.classList.add('has-img');
+  resampleControls.style.display = 'flex';
+  resampleInfo.textContent = `원본: ${res.width} × ${res.height}px · ${(res.size/1024).toFixed(0)} KB`;
+}
+
+async function applyResample() {
+  if (!resamplePath || isResampleProcessing) return;
+  isResampleProcessing = true;
+  const scale = parseFloat(scaleSlider.value);
+  scaleVal.textContent = scale + '×';
+  const res = await window.api.resamplePreview({ filePath: resamplePath });
+  const sharp = null; // preview에서 이미 처리된 base64 그대로 사용
+  // 업스케일 버전은 메인에서 처리 — 여기선 미리보기만
+  const meta = res;
+  const newW = Math.round(meta.width * scale);
+  const newH = Math.round(meta.height * scale);
+  resampleInfo.textContent = `원본: ${meta.width}×${meta.height} → 업스케일: ${newW}×${newH} (${scale}×)`;
+  // processed 미리보기: CSS scale로 시뮬레이션
+  imgProc.src = 'data:image/png;base64,' + res.base64;
+  imgProc.style.imageRendering = 'pixelated';
+  imgProc.style.transform = `scale(${scale})`;
+  imgProc.style.transformOrigin = 'top left';
+  isResampleProcessing = false;
+}
+
+scaleSlider.addEventListener('input', applyResample);
+
+document.getElementById('btnResampleSave').addEventListener('click', async () => {
+  if (!resamplePath) return;
+  const scale = parseFloat(scaleSlider.value);
+  const saved = await window.api.resampleSave({ filePath: resamplePath, scale });
+  if (saved) alert('저장 완료: ' + saved);
+});
+
+// Compare slider drag
+let isDragging = false;
+slider.addEventListener('mousedown', () => isDragging = true);
+window.addEventListener('mouseup', () => isDragging = false);
+window.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  const rect = compareWrap.getBoundingClientRect();
+  const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+  const pct = (x / rect.width * 100).toFixed(1);
+  slider.style.left = pct + '%';
+  imgProc.style.clipPath = `inset(0 ${100-pct}% 0 0)`;
+});
+
+// ── Tab 3: 웹에서 찾기 ──────────────────────────────────────────────
+const dz3 = document.getElementById('dz3');
+const webviewWrap = document.getElementById('webviewWrap');
+const gWebview = document.getElementById('gWebview');
+const webviewUrl = document.getElementById('webviewUrl');
+
+setupDrop(dz3, async paths => {
+  const p = paths.find(x => ['png','jpg','jpeg','webp','bmp','gif'].includes(x.split('.').pop().toLowerCase()));
+  if (!p) return;
+  await searchWithGoogleLens(p);
+});
+
+dz3.addEventListener('click', async () => {
+  // 이미지 파일 선택 → 구글 렌즈
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = async e => {
+    const f = e.target.files[0];
+    if (f && f.path) await searchWithGoogleLens(f.path);
+  };
+  input.click();
+});
+
+async function searchWithGoogleLens(imgPath) {
+  // 이미지를 base64로 읽어서 data URL로 구글 렌즈에 전달
+  const res = await window.api.resamplePreview({ filePath: imgPath });
+  const dataUrl = 'data:image/png;base64,' + res.base64;
+  // 구글 렌즈 업로드 URL로 이동
+  const lensUrl = 'https://lens.google.com/upload?hl=ko';
+  webviewWrap.classList.add('on');
+  webviewUrl.textContent = lensUrl;
+  gWebview.src = lensUrl;
+  // webview 로드 완료 후 파일 자동 처리 불가 → 안내
+  gWebview.addEventListener('did-finish-load', () => {
+    webviewUrl.textContent = gWebview.src;
+  }, { once: false });
+}
+
+document.getElementById('btnNewSearch').onclick = () => {
+  webviewWrap.classList.remove('on');
+  gWebview.src = 'about:blank';
+};
+
+gWebview.addEventListener('new-window', e => { window.api.openExternal(e.url); });
+
+// ── Tab 4: PC에서 찾기 ──────────────────────────────────────────────
+let pcQueryPath = null;
+let pcScanDir = null;
+
+const dz4 = document.getElementById('dz4');
+const pcQueryThumb = document.getElementById('pcQueryThumb');
+const dz4Icon = document.getElementById('dz4Icon');
+const dz4Label = document.getElementById('dz4Label');
+const pcFolderPath = document.getElementById('pcFolderPath');
+const pcProgress = document.getElementById('pcProgress');
+const pcResults = document.getElementById('pcResults');
+const btnStartScan = document.getElementById('btnStartScan');
+
+setupDrop(dz4, paths => setPcQuery(paths.find(x => ['png','jpg','jpeg','webp','bmp','gif','tiff'].includes(x.split('.').pop().toLowerCase()))));
+dz4.addEventListener('click', async () => {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => { if(e.target.files[0]?.path) setPcQuery(e.target.files[0].path); };
+  input.click();
+});
+
+function setPcQuery(p) {
+  if (!p) return;
+  pcQueryPath = p;
+  const res = window.api.resamplePreview({ filePath: p }).then(r => {
+    pcQueryThumb.src = 'data:image/png;base64,' + r.base64;
+    pcQueryThumb.style.display = 'block';
+    dz4Icon.style.display = 'none';
+    dz4Label.textContent = p.split(/[\\\/]/).pop();
+  });
+  updateScanBtn();
+}
+
+document.getElementById('btnScanFolder').addEventListener('click', async () => {
+  const f = await window.api.openScanFolder();
+  if (f) { pcScanDir=f; pcFolderPath.textContent=f; pcFolderPath.classList.add('has'); updateScanBtn(); }
+});
+
+function updateScanBtn() { btnStartScan.disabled = !pcQueryPath || !pcScanDir; }
+
+btnStartScan.addEventListener('click', async () => {
+  btnStartScan.disabled = true;
+  pcResults.innerHTML = '';
+  pcProgress.textContent = '스캔 준비 중...';
+  pcProgress.classList.add('on');
+
+  window.api.removeScanListeners();
+  window.api.onScanTotal(total => { pcProgress.textContent = `이미지 ${total}개 발견, 분석 중...`; });
+  window.api.onScanProgress(({current,total}) => { pcProgress.textContent = `분석 중... ${current} / ${total}`; });
+
+  const results = await window.api.phashScan({ queryPath: pcQueryPath, scanDir: pcScanDir });
+
+  pcProgress.classList.remove('on');
+  btnStartScan.disabled = false;
+
+  if (!results.length) {
+    pcResults.innerHTML = '<div class="pc-empty">유사한 이미지를 찾지 못했습니다</div>';
+    return;
   }
 
-  function removeFile(idx) { state.files.splice(idx, 1); render(); updateBtn(); }
+  pcResults.innerHTML = results.map(r => `
+    <div class="pc-result-item" data-path="${r.filePath}" title="${r.filePath}">
+      <img class="pc-result-thumb" src="data:image/png;base64,${r.preview}">
+      <span class="pc-result-badge">${r.similarity}%</span>
+    </div>`).join('');
 
-  function badgeHtml(f) {
-    if (f.status === 'idle') return '<span class="file-badge badge-idle">대기</span>';
-    if (f.status === 'processing') return `<span class="file-badge badge-processing"><span class="spinner"></span>${f.imageCount}장</span>`;
-    if (f.status === 'done') return `<span class="file-badge badge-done">✓ ${f.imageCount}장</span>`;
-    if (f.status === 'error') return '<span class="file-badge badge-error">오류</span>';
-    return '';
-  }
-
-  function render() {
-    if (!state.files.length) { fileList.innerHTML = '<div class="empty-state">추가된 파일이 없습니다</div>'; return; }
-    fileList.innerHTML = state.files.map((f, i) => `
-      <div class="file-item status-${f.status}">
-        <div class="file-icon fi-${f.ext}">${f.ext.toUpperCase()}</div>
-        <div class="file-info">
-          <div class="file-name" title="${f.path}">${f.name}</div>
-          <div class="file-sub">${f.path}</div>
-        </div>
-        ${badgeHtml(f)}
-        ${!state.running ? `<button class="file-remove" data-idx="${i}">✕</button>` : ''}
-      </div>
-    `).join('');
-    fileList.querySelectorAll('.file-remove').forEach(btn => {
-      btn.addEventListener('click', e => { e.stopPropagation(); removeFile(+btn.dataset.idx); });
-    });
-  }
-
-  function updateBtn() { btnExtract.disabled = state.running || !state.files.length || !state.outputDir; }
-
-  btnSelectFolder.addEventListener('click', async () => {
-    const folder = await window.api.openFolder();
-    if (folder) {
-      state.outputDir = folder;
-      outputPath.textContent = folder;
-      outputPath.classList.add('has');
-      btnOpenFolder.disabled = false;
-      updateBtn();
-    }
+  pcResults.querySelectorAll('.pc-result-item').forEach(el => {
+    el.addEventListener('click', () => window.api.openPath(el.dataset.path));
+    el.addEventListener('dblclick', () => window.api.openFolderInExplorer(el.dataset.path.replace(/[\\\/][^\\\/]+$/, '')));
   });
+});
 
-  btnOpenFolder.addEventListener('click', () => {
-    const t = state.lastOutputDir || state.outputDir;
-    if (t) window.api.openFolderInExplorer(t);
-  });
-
-  btnExtract.addEventListener('click', async () => {
-    if (state.running || !state.outputDir || !state.files.length) return;
-    state.running = true;
-    state.files.forEach(f => { f.status = 'idle'; f.imageCount = 0; f.error = ''; });
-    render();
-    btnExtract.disabled = true;
-    btnExtract.textContent = '추출 중...';
-    progressWrap.classList.add('visible');
-    progressBar.style.width = '0%';
-
-    window.api.removeProgressListener();
-    window.api.onProgress(({ fileIndex, fileTotal, status, imageCount, error }) => {
-      const f = state.files[fileIndex];
-      if (!f) return;
-      f.status = status; f.imageCount = imageCount || 0;
-      if (error) f.error = error;
-      const pct = ((fileIndex + (status === 'done' || status === 'error' ? 1 : 0.5)) / fileTotal) * 100;
-      progressBar.style.width = pct + '%';
-      render();
-    });
-
-    await window.api.startExtract({ filePaths: state.files.map(f => f.path), outputDir: state.outputDir });
-    state.running = false;
-    progressBar.style.width = '100%';
-    btnExtract.textContent = '추출 시작';
-    state.lastOutputDir = state.outputDir;
-    updateBtn(); render();
-  });
+// ── Helpers ──────────────────────────────────────────────────────────
+function setupDrop(el, cb) {
+  el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('over'); });
+  el.addEventListener('dragleave', () => el.classList.remove('over'));
+  el.addEventListener('drop', e => { e.preventDefault(); el.classList.remove('over'); cb(Array.from(e.dataTransfer.files).map(f=>f.path)); });
+}
 </script>
 </body>
 </html>
